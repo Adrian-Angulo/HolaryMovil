@@ -11,15 +11,18 @@ import '../widgets/common/custom_card.dart';
 import '../widgets/dashboard/chart_semanal.dart';
 import '../widgets/dashboard/kpi_card.dart';
 import '../widgets/dashboard/progress_bar_meta.dart';
+import '../widgets/dashboard/ritmo_status_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   final VoidCallback onNavigateToRegistrar;
   final VoidCallback onNavigateToHistorial;
+  final VoidCallback? onNavigateToAjustes;
 
   const DashboardScreen({
     super.key,
     required this.onNavigateToRegistrar,
     required this.onNavigateToHistorial,
+    this.onNavigateToAjustes,
   });
 
   @override
@@ -90,9 +93,16 @@ class DashboardScreen extends ConsumerWidget {
                       horasRestantes: metricas.horasRestantes,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // 2. Tarjetas KPI en Grid con Entrada Escalonada
+                  // 2. Tarjeta de Estrategia de Ritmo / Cumplimiento
+                  RitmoStatusCard(
+                    metricas: metricas,
+                    onConfigurarFechas: onNavigateToAjustes,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 3. Tarjetas KPI en Grid con Entrada Escalonada
                   Row(
                     children: [
                       Expanded(
@@ -158,7 +168,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // 3. Gráfica Semanal con fl_chart
+                  // 4. Gráfica Semanal con fl_chart
                   FadeInUp(
                     duration: const Duration(milliseconds: 500),
                     delay: const Duration(milliseconds: 300),
@@ -169,7 +179,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // 4. Horario Programado para Hoy
+                  // 5. Horario Programado para Hoy
                   if (horarioHoy != null)
                     FadeInUp(
                       duration: const Duration(milliseconds: 500),
@@ -227,7 +237,7 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   const SizedBox(height: 16),
 
-                  // 5. Últimos Registros
+                  // 6. Últimos Registros
                   FadeIn(
                     duration: const Duration(milliseconds: 400),
                     delay: const Duration(milliseconds: 400),

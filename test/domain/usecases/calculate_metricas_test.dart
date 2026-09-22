@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:practi_horas_app/domain/entities/metricas_dashboard.dart';
 import 'package:practi_horas_app/domain/entities/perfil.dart';
 import 'package:practi_horas_app/domain/entities/registro_hora.dart';
 import 'package:practi_horas_app/domain/usecases/estadisticas/calculate_metricas_usecase.dart';
@@ -6,45 +7,40 @@ import 'package:practi_horas_app/domain/usecases/estadisticas/calculate_metricas
 void main() {
   group('CalculateMetricasUseCase Tests', () {
     final useCase = CalculateMetricasUseCase();
-    final perfil = Perfil.defaultPerfil().copyWith(metaHorasTotal: 100.0);
+    final perfil = Perfil.defaultPerfil().copyWith(
+      metaHorasTotal: 100.0,
+      horasInicialesPrevias: 20.0,
+      fechaInicio: DateTime(2026, 9, 1),
+      fechaFin: DateTime(2026, 9, 30),
+    );
 
-    test('Calcula métricas iniciales con lista vacía de registros', () {
+    test('Calcula métricas iniciales considerando horas iniciales cursadas', () {
       final metricas = useCase.execute(
         registros: [],
         perfil: perfil,
-        fechaReferencia: DateTime(2026, 9, 21), // Lunes
+        fechaReferencia: DateTime(2026, 9, 1),
       );
 
-      expect(metricas.horasTotalesCompletadas, 0.0);
+      expect(metricas.horasTotalesCompletadas, 20.0);
+      expect(metricas.horasPreviasCursadas, 20.0);
       expect(metricas.metaHorasTotal, 100.0);
-      expect(metricas.horasRestantes, 100.0);
-      expect(metricas.porcentajeProgreso, 0.0);
+      expect(metricas.horasRestantes, 80.0);
+      expect(metricas.porcentajeProgreso, 20.0);
       expect(metricas.totalDiasTrabajados, 0);
     });
 
-    test('Calcula métricas correctamente con registros agregados', () {
+    test('Calcula ritmo y cumplimiento correctamente', () {
       final fechaRef = DateTime(2026, 9, 21); // Lunes
       final registros = [
         RegistroHora(
           id: '1',
-          fecha: DateTime(2026, 9, 21), // Lunes de esta semana
+          fecha: DateTime(2026, 9, 21),
           horaInicio: '08:00',
           horaFin: '13:00',
           descuentoAlmuerzoMinutos: 0,
           horasComputables: 5.0,
           modalidad: 'Presencial',
           actividades: 'Desarrollo',
-          createdAt: DateTime.now(),
-        ),
-        RegistroHora(
-          id: '2',
-          fecha: DateTime(2026, 9, 22), // Martes de esta semana
-          horaInicio: '14:00',
-          horaFin: '19:00',
-          descuentoAlmuerzoMinutos: 0,
-          horasComputables: 5.0,
-          modalidad: 'Presencial',
-          actividades: 'Testing',
           createdAt: DateTime.now(),
         ),
       ];
@@ -55,16 +51,15 @@ void main() {
         fechaReferencia: fechaRef,
       );
 
-      expect(metricas.horasTotalesCompletadas, 10.0);
+      // Total = 20 (previas) + 5 (registradas) = 25.0
+      expect(metricas.horasTotalesCompletadas, 25.0);
+      expect(metricas.horasRegistradasEnApp, 5.0);
       expect(metricas.metaHorasTotal, 100.0);
-      expect(metricas.horasRestantes, 90.0);
-      expect(metricas.porcentajeProgreso, 10.0);
-      expect(metricas.horasEstaSemana, 10.0);
-      expect(metricas.totalDiasTrabajados, 2);
-      expect(metricas.promedioHorasPorDia, 5.0);
-      expect(metricas.horasPorDiaSemana[1], 5.0); // Lunes
-      expect(metricas.horasPorDiaSemana[2], 5.0); // Martes
-      expect(metricas.horasPorDiaSemana[3], 0.0); // Miércoles
+      expect(metricas.horasRestantes, 75.0);
+      expect(metricas.porcentajeProgreso, 25.0);
+      expect(metricas.totalDiasTrabajados, 1);
+      expect(metricas.estadoRitmo != EstadoRitmo.sinFechas, true);
+      expect(metricas.ritmoDiarioSugerido > 0, true);
     });
   });
 }

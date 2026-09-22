@@ -5,10 +5,10 @@ part 'perfil_hive_model.g.dart';
 
 @HiveType(typeId: 2)
 class PerfilHiveModel extends HiveObject {
-  @HiveField(0)
+  @HiveField(0, defaultValue: 'Practicante')
   String nombre;
 
-  @HiveField(1)
+  @HiveField(1, defaultValue: 360.0)
   double metaHorasTotal;
 
   @HiveField(2)
@@ -20,11 +20,15 @@ class PerfilHiveModel extends HiveObject {
   @HiveField(4)
   Map<String, HorarioDiaHiveModel> horarioSemanal;
 
+  @HiveField(5, defaultValue: 0.0)
+  double horasInicialesPrevias;
+
   PerfilHiveModel({
     required this.nombre,
     required this.metaHorasTotal,
     this.fechaInicio,
     this.fechaFin,
     required this.horarioSemanal,
+    this.horasInicialesPrevias = 0.0,
   });
 }

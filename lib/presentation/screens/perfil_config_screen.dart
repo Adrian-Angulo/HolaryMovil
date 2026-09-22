@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/csv_exporter.dart';
 import '../../core/utils/date_formatters.dart';
 import '../../core/utils/time_calculator.dart';
 import '../../domain/entities/horario_dia.dart';
 import '../providers/perfil_provider.dart';
+import '../providers/registro_provider.dart';
 import '../widgets/common/custom_card.dart';
 
 class PerfilConfigScreen extends ConsumerStatefulWidget {
@@ -19,17 +21,24 @@ class PerfilConfigScreen extends ConsumerStatefulWidget {
 class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
   late TextEditingController _nombreController;
   late TextEditingController _metaController;
+  late TextEditingController _horasPreviasController;
+  DateTime? _fechaInicio;
+  DateTime? _fechaFin;
 
   @override
   void initState() {
     super.initState();
     _nombreController = TextEditingController();
     _metaController = TextEditingController();
+    _horasPreviasController = TextEditingController();
 
     final perfil = ref.read(perfilNotifierProvider).value;
     if (perfil != null) {
       _nombreController.text = perfil.nombre;
       _metaController.text = perfil.metaHorasTotal.toString();
+      _horasPreviasController.text = perfil.horasInicialesPrevias.toString();
+      _fechaInicio = perfil.fechaInicio;
+      _fechaFin = perfil.fechaFin;
     }
   }
 
@@ -37,26 +46,80 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
   void dispose() {
     _nombreController.dispose();
     _metaController.dispose();
+    _horasPreviasController.dispose();
     super.dispose();
+  }
+
+  Future<void> _seleccionarFechaInicio() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaInicio ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      locale: const Locale('es'),
+    );
+    if (picked != null) {
+      setState(() => _fechaInicio = picked);
+    }
+  }
+
+  Future<void> _seleccionarFechaFin() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaFin ?? DateTime.now().add(const Duration(days: 90)),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      locale: const Locale('es'),
+    );
+    if (picked != null) {
+      setState(() => _fechaFin = picked);
+    }
   }
 
   Future<void> _guardarDatosGenerales() async {
     final nombre = _nombreController.text.trim();
     final meta = double.tryParse(_metaController.text.trim()) ?? 360.0;
+    final horasPrevias = double.tryParse(_horasPreviasController.text.trim()) ?? 0.0;
 
-    await ref.read(perfilNotifierProvider.notifier).updateNombreYMeta(
+    await ref.read(perfilNotifierProvider.notifier).updateConfiguracionGeneral(
           nombre: nombre.isEmpty ? 'Practicante' : nombre,
           metaHoras: meta,
+          horasInicialesPrevias: horasPrevias,
+          fechaInicio: _fechaInicio,
+          fechaFin: _fechaFin,
         );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ Configuración guardada'),
+          content: Text('✅ Configuración y horas previas guardadas'),
           backgroundColor: Color(0xFF10B981),
         ),
       );
     }
+  }
+
+  Future<void> _exportarCsvDesdeAjustes() async {
+    final todosLosRegistros = ref.read(registrosNotifierProvider).value ?? [];
+    final perfil = ref.read(perfilNotifierProvider).value;
+    final horasPrevias = perfil?.horasInicialesPrevias ?? 0.0;
+    final nombre = perfil?.nombre ?? 'Practicante';
+
+    if (todosLosRegistros.isEmpty && horasPrevias == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ No hay registros de horas para exportar'),
+          backgroundColor: Colors.amber,
+        ),
+      );
+      return;
+    }
+
+    await CsvExporter.exportarYCompartirCsv(
+      registros: todosLosRegistros,
+      horasInicialesPrevias: horasPrevias,
+      nombrePracticante: nombre,
+    );
   }
 
   Future<void> _editarHorarioDia(String diaKey, HorarioDia horario) async {
@@ -231,6 +294,11 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
       if (next.hasValue && _nombreController.text.isEmpty) {
         _nombreController.text = next.value!.nombre;
         _metaController.text = next.value!.metaHorasTotal.toString();
+        _horasPreviasController.text = next.value!.horasInicialesPrevias.toString();
+        setState(() {
+          _fechaInicio = next.value!.fechaInicio;
+          _fechaFin = next.value!.fechaFin;
+        });
       }
     });
 
@@ -253,7 +321,7 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Datos del Practicante con FadeInDown
+                // 1. Datos del Practicante & Horas Previas
                 FadeInDown(
                   duration: const Duration(milliseconds: 450),
                   child: CustomCard(
@@ -262,7 +330,7 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Datos del Practicante',
+                          'Datos del Practicante y Meta',
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -277,16 +345,84 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _metaController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Meta Total de Horas',
-                            prefixIcon: Icon(Icons.flag_outlined),
-                            suffixText: 'hrs',
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _metaController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Meta Total',
+                                  prefixIcon: Icon(Icons.flag_outlined),
+                                  suffixText: 'hrs',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _horasPreviasController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Horas Ya Cursadas',
+                                  prefixIcon: Icon(Icons.history_edu_rounded),
+                                  suffixText: 'hrs',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '💡 Horas ya cursadas: Si ya completaste horas antes de usar la app, ingrésalas aquí para sumarlas a tu progreso.',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            height: 1.3,
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
+
+                        // Selector de Periodo de Prácticas
+                        Text(
+                          'Periodo de Prácticas (Para calcular tu ritmo)',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _seleccionarFechaInicio,
+                                icon: const Icon(Icons.event_available, size: 16),
+                                label: Text(
+                                  _fechaInicio != null
+                                      ? 'Inicio: ${DateFormatters.fechaCorta(_fechaInicio!)}'
+                                      : 'Fecha Inicio',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _seleccionarFechaFin,
+                                icon: const Icon(Icons.event_busy, size: 16),
+                                label: Text(
+                                  _fechaFin != null
+                                      ? 'Fin: ${DateFormatters.fechaCorta(_fechaFin!)}'
+                                      : 'Fecha Fin',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
                         Align(
                           alignment: Alignment.centerRight,
                           child: FilledButton.tonal(
@@ -298,9 +434,55 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // 2. Tarjeta de Exportación de Datos
+                FadeInUp(
+                  duration: const Duration(milliseconds: 400),
+                  delay: const Duration(milliseconds: 100),
+                  child: CustomCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.description_outlined, color: Color(0xFF10B981)),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Reporte CSV de Horas',
+                                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Exporta tu historial con sumatoria (∑) para Excel',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        FilledButton.tonal(
+                          onPressed: _exportarCsvDesdeAjustes,
+                          child: const Text('Exportar'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
 
-                // 2. Horario Semanal Habitual con FadeInUp
+                // 3. Horario Semanal Habitual con FadeInUp
                 FadeIn(
                   duration: const Duration(milliseconds: 400),
                   delay: const Duration(milliseconds: 150),

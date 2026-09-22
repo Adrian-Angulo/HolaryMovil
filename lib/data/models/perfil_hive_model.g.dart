@@ -17,18 +17,19 @@ class PerfilHiveModelAdapter extends TypeAdapter<PerfilHiveModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return PerfilHiveModel(
-      nombre: fields[0] as String,
-      metaHorasTotal: fields[1] as double,
+      nombre: fields[0] == null ? 'Practicante' : fields[0] as String,
+      metaHorasTotal: fields[1] == null ? 360.0 : fields[1] as double,
       fechaInicio: fields[2] as DateTime?,
       fechaFin: fields[3] as DateTime?,
       horarioSemanal: (fields[4] as Map).cast<String, HorarioDiaHiveModel>(),
+      horasInicialesPrevias: fields[5] == null ? 0.0 : fields[5] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, PerfilHiveModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.nombre)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class PerfilHiveModelAdapter extends TypeAdapter<PerfilHiveModel> {
       ..writeByte(3)
       ..write(obj.fechaFin)
       ..writeByte(4)
-      ..write(obj.horarioSemanal);
+      ..write(obj.horarioSemanal)
+      ..writeByte(5)
+      ..write(obj.horasInicialesPrevias);
   }
 
   @override

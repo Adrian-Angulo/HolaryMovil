@@ -59,6 +59,7 @@ class LocalStorageDataSource {
     final defaultPerfil = PerfilHiveModel(
       nombre: 'Practicante',
       metaHorasTotal: 360.0,
+      horasInicialesPrevias: 0.0,
       fechaInicio: DateTime.now(),
       fechaFin: DateTime.now().add(const Duration(days: 90)),
       horarioSemanal: {

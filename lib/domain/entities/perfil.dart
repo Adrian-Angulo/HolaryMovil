@@ -3,6 +3,7 @@ import 'horario_dia.dart';
 class Perfil {
   final String nombre;
   final double metaHorasTotal;
+  final double horasInicialesPrevias;
   final DateTime? fechaInicio;
   final DateTime? fechaFin;
   final Map<String, HorarioDia> horarioSemanal;
@@ -10,6 +11,7 @@ class Perfil {
   const Perfil({
     required this.nombre,
     required this.metaHorasTotal,
+    this.horasInicialesPrevias = 0.0,
     this.fechaInicio,
     this.fechaFin,
     required this.horarioSemanal,
@@ -18,6 +20,7 @@ class Perfil {
   Perfil copyWith({
     String? nombre,
     double? metaHorasTotal,
+    double? horasInicialesPrevias,
     DateTime? fechaInicio,
     DateTime? fechaFin,
     Map<String, HorarioDia>? horarioSemanal,
@@ -25,6 +28,7 @@ class Perfil {
     return Perfil(
       nombre: nombre ?? this.nombre,
       metaHorasTotal: metaHorasTotal ?? this.metaHorasTotal,
+      horasInicialesPrevias: horasInicialesPrevias ?? this.horasInicialesPrevias,
       fechaInicio: fechaInicio ?? this.fechaInicio,
       fechaFin: fechaFin ?? this.fechaFin,
       horarioSemanal: horarioSemanal ?? this.horarioSemanal,
@@ -32,11 +36,13 @@ class Perfil {
   }
 
   static Perfil defaultPerfil() {
+    final now = DateTime.now();
     return Perfil(
       nombre: 'Practicante',
       metaHorasTotal: 360.0,
-      fechaInicio: DateTime.now(),
-      fechaFin: DateTime.now().add(const Duration(days: 90)),
+      horasInicialesPrevias: 0.0,
+      fechaInicio: DateTime(now.year, now.month, 1),
+      fechaFin: DateTime(now.year, now.month + 3, 0),
       horarioSemanal: {
         'lunes': const HorarioDia(
           diaSemana: 'lunes',

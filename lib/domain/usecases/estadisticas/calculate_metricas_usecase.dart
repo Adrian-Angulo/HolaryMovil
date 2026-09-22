@@ -10,12 +10,15 @@ class CalculateMetricasUseCase {
   }) {
     final now = fechaReferencia ?? DateTime.now();
 
-    // 1. Horas totales completadas
-    double horasTotales = 0.0;
+    // 1. Horas registradas en la app y horas totales (incluye horas previas cursadas)
+    double horasRegistradas = 0.0;
     for (final reg in registros) {
-      horasTotales += reg.horasComputables;
+      horasRegistradas += reg.horasComputables;
     }
-    horasTotales = double.parse(horasTotales.toStringAsFixed(2));
+    horasRegistradas = double.parse(horasRegistradas.toStringAsFixed(2));
+
+    final double horasPrevias = perfil.horasInicialesPrevias;
+    double horasTotales = double.parse((horasPrevias + horasRegistradas).toStringAsFixed(2));
 
     // 2. Meta y Restantes
     final meta = perfil.metaHorasTotal;
@@ -74,11 +77,97 @@ class CalculateMetricasUseCase {
 
     final totalDias = fechasUnicasTrabajadas.length;
     final promedioDiario = totalDias > 0
-        ? double.parse((horasTotales / totalDias).toStringAsFixed(2))
+        ? double.parse((horasRegistradas / totalDias).toStringAsFixed(2))
         : 0.0;
+
+    // 5. Estrategia de Ritmo y Cumplimiento de Horas
+    EstadoRitmo estadoRitmo = EstadoRitmo.sinFechas;
+    double diferenciaHorasRitmo = 0.0;
+    double horasEsperadasHoy = 0.0;
+    double ritmoDiarioSugerido = 0.0;
+    int diasHabilesRestantes = 0;
+    String mensajeRitmo = '';
+
+    if (perfil.fechaInicio != null && perfil.fechaFin != null) {
+      final fInicio = DateTime(perfil.fechaInicio!.year, perfil.fechaInicio!.month, perfil.fechaInicio!.day);
+      final fFin = DateTime(perfil.fechaFin!.year, perfil.fechaFin!.month, perfil.fechaFin!.day, 23, 59, 59);
+      final fHoy = DateTime(now.year, now.month, now.day);
+
+      // Obtener qué días de la semana son laborales (activos en el horario semanal)
+      final Set<int> diasLaboralesWeekdays = {};
+      const diasKeys = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+      for (int i = 0; i < diasKeys.length; i++) {
+        final key = diasKeys[i];
+        final hDia = perfil.horarioSemanal[key];
+        if (hDia?.activo == true) {
+          diasLaboralesWeekdays.add(i + 1); // 1 = Lunes ... 7 = Domingo
+        }
+      }
+      if (diasLaboralesWeekdays.isEmpty) {
+        // Si ninguno está activo, considerar lunes a viernes por defecto
+        diasLaboralesWeekdays.addAll([1, 2, 3, 4, 5]);
+      }
+
+      // Contar días hábiles totales, transcurridos y restantes
+      int totalDiasHabiles = 0;
+      int diasHabilesTranscurridos = 0;
+      int diasRestantes = 0;
+
+      DateTime iter = fInicio;
+      while (iter.isBefore(fFin) || iter.isAtSameMomentAs(fFin)) {
+        if (diasLaboralesWeekdays.contains(iter.weekday)) {
+          totalDiasHabiles++;
+          if (iter.isBefore(fHoy) || iter.isAtSameMomentAs(fHoy)) {
+            diasHabilesTranscurridos++;
+          }
+          if (iter.isAfter(fHoy)) {
+            diasRestantes++;
+          }
+        }
+        iter = iter.add(const Duration(days: 1));
+      }
+
+      diasHabilesRestantes = diasRestantes;
+
+      if (totalDiasHabiles > 0) {
+        horasEsperadasHoy = double.parse(
+          (meta * (diasHabilesTranscurridos / totalDiasHabiles)).toStringAsFixed(2),
+        );
+        diferenciaHorasRitmo = double.parse((horasTotales - horasEsperadasHoy).toStringAsFixed(2));
+
+        if (diasHabilesRestantes > 0) {
+          ritmoDiarioSugerido = double.parse((horasRestantes / diasHabilesRestantes).toStringAsFixed(2));
+        } else {
+          ritmoDiarioSugerido = horasRestantes;
+        }
+
+        if (horasRestantes <= 0) {
+          estadoRitmo = EstadoRitmo.adelantado;
+          mensajeRitmo = '🎉 ¡Completaste el 100% de tus horas de prácticas!';
+        } else if (diferenciaHorasRitmo >= 3.0) {
+          estadoRitmo = EstadoRitmo.adelantado;
+          mensajeRitmo = '🚀 Vas adelantado por ${diferenciaHorasRitmo.toStringAsFixed(1)} hrs. ¡Excelente ritmo!';
+        } else if (diferenciaHorasRitmo >= -3.0 && diferenciaHorasRitmo < 3.0) {
+          estadoRitmo = EstadoRitmo.aTiempo;
+          mensajeRitmo = '✨ Vas al día con tu meta. Mantén este ritmo.';
+        } else {
+          estadoRitmo = EstadoRitmo.atrasado;
+          final atraso = diferenciaHorasRitmo.abs().toStringAsFixed(1);
+          mensajeRitmo = '⏳ Vas atrasado por $atraso hrs. Necesitas hacer $ritmoDiarioSugerido hrs/día para terminar a tiempo.';
+        }
+      } else {
+        estadoRitmo = EstadoRitmo.sinFechas;
+        mensajeRitmo = 'Revisa las fechas configuradas de inicio y fin.';
+      }
+    } else {
+      estadoRitmo = EstadoRitmo.sinFechas;
+      mensajeRitmo = 'Configura las fechas de tus prácticas para ver tu ritmo.';
+    }
 
     return MetricasDashboard(
       horasTotalesCompletadas: horasTotales,
+      horasPreviasCursadas: horasPrevias,
+      horasRegistradasEnApp: horasRegistradas,
       metaHorasTotal: meta,
       horasRestantes: horasRestantes,
       porcentajeProgreso: double.parse(porcentaje.toStringAsFixed(1)),
@@ -87,6 +176,12 @@ class CalculateMetricasUseCase {
       totalDiasTrabajados: totalDias,
       promedioHorasPorDia: promedioDiario,
       horasPorDiaSemana: horasPorDia,
+      estadoRitmo: estadoRitmo,
+      diferenciaHorasRitmo: diferenciaHorasRitmo,
+      horasEsperadasHoy: horasEsperadasHoy,
+      ritmoDiarioSugerido: ritmoDiarioSugerido,
+      diasHabilesRestantes: diasHabilesRestantes,
+      mensajeRitmo: mensajeRitmo,
     );
   }
 }

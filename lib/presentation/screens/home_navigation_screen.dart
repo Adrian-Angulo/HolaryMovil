@@ -27,6 +27,7 @@ class _HomeNavigationScreenState extends ConsumerState<HomeNavigationScreen> {
       DashboardScreen(
         onNavigateToRegistrar: () => _onTabSelected(1),
         onNavigateToHistorial: () => _onTabSelected(2),
+        onNavigateToAjustes: () => _onTabSelected(3),
       ),
       NuevoRegistroScreen(
         onRegistroGuardado: () => _onTabSelected(0),

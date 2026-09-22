@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/csv_exporter.dart';
 import '../../core/utils/date_formatters.dart';
 import '../../domain/entities/registro_hora.dart';
+import '../providers/perfil_provider.dart';
 import '../providers/registro_form_provider.dart';
 import '../providers/registro_provider.dart';
 import '../widgets/common/custom_card.dart';
@@ -16,6 +18,121 @@ class HistorialScreen extends ConsumerWidget {
     super.key,
     this.onEditRegistro,
   });
+
+  Future<void> _exportarCsv(BuildContext context, WidgetRef ref) async {
+    final todosLosRegistros = ref.read(registrosNotifierProvider).value ?? [];
+    final perfil = ref.read(perfilNotifierProvider).value;
+    final horasPrevias = perfil?.horasInicialesPrevias ?? 0.0;
+    final nombre = perfil?.nombre ?? 'Practicante';
+
+    if (todosLosRegistros.isEmpty && horasPrevias == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ No hay registros de horas para exportar'),
+          backgroundColor: Colors.amber,
+        ),
+      );
+      return;
+    }
+
+    // Modal inferior con opciones de exportación
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.table_chart_rounded, color: Color(0xFF10B981)),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Exportar Reporte CSV',
+                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        'Compatible con Excel y Google Sheets',
+                        style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Formato: Fecha • Entrada • Salida • Actividades • Horas • Sumatoria (∑)\nTotal a exportar: ${todosLosRegistros.length} registros (${todosLosRegistros.fold<double>(horasPrevias, (prev, r) => prev + r.horasComputables).toStringAsFixed(2)} hrs totales)',
+                  style: GoogleFonts.inter(fontSize: 11, height: 1.4),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await CsvExporter.exportarYCompartirCsv(
+                      registros: todosLosRegistros,
+                      horasInicialesPrevias: horasPrevias,
+                      nombrePracticante: nombre,
+                    );
+                  },
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: const Text('Compartir / Guardar Archivo CSV'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await CsvExporter.copiarCsvAlPortapapeles(
+                      registros: todosLosRegistros,
+                      horasInicialesPrevias: horasPrevias,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('📋 CSV copiado al portapapeles'),
+                          backgroundColor: Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text('Copiar Texto CSV'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _confirmarEliminar(BuildContext context, WidgetRef ref, RegistroHora registro) async {
     final confirm = await showDialog<bool>(
@@ -77,6 +194,13 @@ class HistorialScreen extends ConsumerWidget {
             style: GoogleFonts.inter(fontWeight: FontWeight.w700),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            tooltip: 'Exportar Reporte CSV',
+            onPressed: () => _exportarCsv(context, ref),
+          ),
+        ],
       ),
       body: Column(
         children: [

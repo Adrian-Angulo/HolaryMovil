@@ -31,9 +31,10 @@ class PerfilNotifier extends StateNotifier<AsyncValue<Perfil>> {
     }
   }
 
-  Future<void> updateNombreYMeta({
+  Future<void> updateConfiguracionGeneral({
     required String nombre,
     required double metaHoras,
+    required double horasInicialesPrevias,
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
@@ -43,6 +44,7 @@ class PerfilNotifier extends StateNotifier<AsyncValue<Perfil>> {
     final updated = current.copyWith(
       nombre: nombre,
       metaHorasTotal: metaHoras,
+      horasInicialesPrevias: horasInicialesPrevias,
       fechaInicio: fechaInicio,
       fechaFin: fechaFin,
     );

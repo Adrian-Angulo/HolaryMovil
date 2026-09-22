@@ -35,6 +35,7 @@ class PerfilMapper {
     return Perfil(
       nombre: model.nombre,
       metaHorasTotal: model.metaHorasTotal,
+      horasInicialesPrevias: model.horasInicialesPrevias,
       fechaInicio: model.fechaInicio,
       fechaFin: model.fechaFin,
       horarioSemanal: horarioMap,
@@ -50,6 +51,7 @@ class PerfilMapper {
     return PerfilHiveModel(
       nombre: entity.nombre,
       metaHorasTotal: entity.metaHorasTotal,
+      horasInicialesPrevias: entity.horasInicialesPrevias,
       fechaInicio: entity.fechaInicio,
       fechaFin: entity.fechaFin,
       horarioSemanal: horarioMap,
