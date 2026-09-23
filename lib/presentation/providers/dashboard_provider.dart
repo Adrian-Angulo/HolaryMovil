@@ -5,30 +5,26 @@ import 'dependency_injection.dart';
 import 'perfil_provider.dart';
 import 'registro_provider.dart';
 
-final dashboardMetricsProvider = Provider<AsyncValue<MetricasDashboard>>((ref) {
+final dashboardMetricsProvider = FutureProvider<MetricasDashboard>((ref) async {
+  // Observar cambios en perfil y registros para re-calcular/re-cargar
   final registrosAsync = ref.watch(registrosNotifierProvider);
   final perfilAsync = ref.watch(perfilNotifierProvider);
-  final calculateMetricas = ref.watch(calculateMetricasUseCaseProvider);
 
-  if (registrosAsync.isLoading || perfilAsync.isLoading) {
-    return const AsyncValue.loading();
-  }
+  final getMetricsUseCase = ref.read(getDashboardMetricsUseCaseProvider);
+  final result = await getMetricsUseCase.execute();
 
-  if (registrosAsync.hasError) {
-    return AsyncValue.error(registrosAsync.error!, registrosAsync.stackTrace!);
-  }
+  return result.fold(
+    (failure) {
+      // Fallback de cálculo local
+      final registros = registrosAsync.value ?? [];
+      final perfil = perfilAsync.value ?? Perfil.defaultPerfil();
+      final calculateMetricas = ref.read(calculateMetricasUseCaseProvider);
 
-  if (perfilAsync.hasError) {
-    return AsyncValue.error(perfilAsync.error!, perfilAsync.stackTrace!);
-  }
-
-  final registros = registrosAsync.value ?? [];
-  final perfil = perfilAsync.value ?? Perfil.defaultPerfil();
-
-  final metricas = calculateMetricas.execute(
-    registros: registros,
-    perfil: perfil,
+      return calculateMetricas.execute(
+        registros: registros,
+        perfil: perfil,
+      );
+    },
+    (metrics) => metrics,
   );
-
-  return AsyncValue.data(metricas);
 });

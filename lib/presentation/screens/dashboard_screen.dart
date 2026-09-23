@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../core/utils/date_formatters.dart';
 import '../../domain/entities/registro_hora.dart';
 import '../providers/dashboard_provider.dart';
@@ -58,12 +59,55 @@ class DashboardScreen extends ConsumerWidget {
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
                 ),
               ),
             ],
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FadeIn(
+              duration: const Duration(milliseconds: 500),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/logo.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.timer_outlined,
+                        color: Color(0xFF4F46E5),
+                        size: 20,
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: metricasAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -192,13 +236,19 @@ class DashboardScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: horarioHoy.activo
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                                    : const Color(0xFF64748B).withValues(alpha: 0.12),
+                                    ? const Color(0xFF10B981)
+                                          .withValues(alpha: 0.12)
+                                    : const Color(0xFF64748B)
+                                          .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
-                                horarioHoy.activo ? Icons.work_rounded : Icons.weekend_rounded,
-                                color: horarioHoy.activo ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                                horarioHoy.activo
+                                    ? Icons.work_rounded
+                                    : Icons.weekend_rounded,
+                                color: horarioHoy.activo
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -220,7 +270,9 @@ class DashboardScreen extends ConsumerWidget {
                                         : 'Día no laboral según tu horario configurado',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
@@ -261,7 +313,8 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
 
                   registrosAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Text('Error al cargar jornadas: $e'),
                     data: (registros) {
                       if (registros.isEmpty) {
@@ -269,24 +322,35 @@ class DashboardScreen extends ConsumerWidget {
                           duration: const Duration(milliseconds: 450),
                           delay: const Duration(milliseconds: 450),
                           child: CustomCard(
-                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 24,
+                              horizontal: 16,
+                            ),
                             child: Center(
                               child: Column(
                                 children: [
-                                  Icon(Icons.note_alt_outlined, size: 40, color: Colors.grey.shade400),
+                                  Icon(
+                                    Icons.note_alt_outlined,
+                                    size: 40,
+                                    color: Colors.grey.shade400,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Aún no has registrado ninguna jornada',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B),
                                     ),
                                   ),
                                   const SizedBox(height: 12),
                                   ElevatedButton.icon(
                                     onPressed: onNavigateToRegistrar,
                                     icon: const Icon(Icons.add, size: 18),
-                                    label: const Text('Registrar Primera Jornada'),
+                                    label: const Text(
+                                      'Registrar Primera Jornada',
+                                    ),
                                   ),
                                 ],
                               ),
@@ -333,7 +397,11 @@ class DashboardScreen extends ConsumerWidget {
                 color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.access_time_filled, color: Color(0xFF4F46E5), size: 20),
+              child: const Icon(
+                Icons.access_time_filled,
+                color: Color(0xFF4F46E5),
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -352,7 +420,9 @@ class DashboardScreen extends ConsumerWidget {
                     '${reg.horaInicio} - ${reg.horaFin} • ${reg.modalidad}',
                     style: GoogleFonts.inter(
                       fontSize: 11,
-                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
                     ),
                   ),
                 ],

@@ -32,4 +32,16 @@ class HorarioDia {
       modalidad: modalidad ?? this.modalidad,
     );
   }
+
+  factory HorarioDia.porDefecto(String diaSemana) {
+    final esFinDeSemana = diaSemana == 'sabado' || diaSemana == 'domingo';
+    return HorarioDia(
+      diaSemana: diaSemana,
+      activo: !esFinDeSemana,
+      horaInicio: '08:00',
+      horaFin: '13:00',
+      refrigerioMinutos: 0,
+      modalidad: 'Presencial',
+    );
+  }
 }

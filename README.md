@@ -1,17 +1,29 @@
-# practi_horas_app
+# ⏱️ PractiHoras — Control Inteligente de Prácticas
 
-A new Flutter project.
+Aplicación móvil desarrollada en Flutter para la gestión, seguimiento de metas, cálculo de ritmo diario y exportación de reportes de horas de prácticas pre-profesionales y profesionales.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Documentación para el Equipo de Backend
 
-A few resources to get you started if this is your first Flutter project:
+Para el desarrollo del backend, APIs REST y base de datos, consulta la especificación técnica completa:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+👉 **[DOCUMENTACION_BACKEND.md](file:///c:/DEV/practihorasMovil/DOCUMENTACION_BACKEND.md)**
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Contenido de la guía de backend:
+1. **Visión General y Arquitectura**
+2. **Modelo de Datos y Esquema SQL (Usuarios, Perfil, Horario Semanal, Registros de Horas)**
+3. **Lógica de Negocio y Algoritmos (Motor de Ritmo/Pacing Engine, Cálculo de Horas Netas, CSV)**
+4. **Especificación Detallada de Endpoints REST (Auth, Perfil, Registros, Métricas)**
+5. **Estrategia de Sincronización Offline-First**
+6. **Validaciones, Errores y Seguridad Recomendada**
+
+---
+
+## 🛠️ Tecnologías Móvil (Frontend)
+- **Framework:** Flutter (Dart)
+- **Patrón de Arquitectura:** Clean Architecture
+- **Gestión de Estado:** Riverpod (`flutter_riverpod`)
+- **Almacenamiento Local:** Hive (`hive_flutter`)
+- **Diseño & UI:** Google Fonts, Animate Do, Flutter Lucide Icons, Material Design 3
+

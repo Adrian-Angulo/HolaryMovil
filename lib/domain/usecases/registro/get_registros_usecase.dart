@@ -1,3 +1,5 @@
+import '../../../core/errors/either.dart';
+import '../../../core/errors/failures.dart';
 import '../../entities/registro_hora.dart';
 import '../../repositories/i_registro_repository.dart';
 
@@ -6,7 +8,7 @@ class GetRegistrosUseCase {
 
   GetRegistrosUseCase(this._repository);
 
-  Future<List<RegistroHora>> execute() {
+  Future<Either<Failure, List<RegistroHora>>> execute() {
     return _repository.getRegistros();
   }
 }

@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/csv_exporter.dart';
 import '../../core/utils/date_formatters.dart';
@@ -14,10 +15,7 @@ import '../widgets/common/custom_card.dart';
 class HistorialScreen extends ConsumerWidget {
   final Function(RegistroHora)? onEditRegistro;
 
-  const HistorialScreen({
-    super.key,
-    this.onEditRegistro,
-  });
+  const HistorialScreen({super.key, this.onEditRegistro});
 
   Future<void> _exportarCsv(BuildContext context, WidgetRef ref) async {
     final todosLosRegistros = ref.read(registrosNotifierProvider).value ?? [];
@@ -56,7 +54,10 @@ class HistorialScreen extends ConsumerWidget {
                       color: const Color(0xFF10B981).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.table_chart_rounded, color: Color(0xFF10B981)),
+                    child: const Icon(
+                      Icons.table_chart_rounded,
+                      color: Color(0xFF10B981),
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Column(
@@ -64,11 +65,17 @@ class HistorialScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Exportar Reporte CSV',
-                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700),
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         'Compatible con Excel y Google Sheets',
-                        style: GoogleFonts.inter(fontSize: 12, color: Colors.grey),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -134,7 +141,11 @@ class HistorialScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmarEliminar(BuildContext context, WidgetRef ref, RegistroHora registro) async {
+  Future<void> _confirmarEliminar(
+    BuildContext context,
+    WidgetRef ref,
+    RegistroHora registro,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -161,7 +172,9 @@ class HistorialScreen extends ConsumerWidget {
     );
 
     if (confirm == true) {
-      await ref.read(registrosNotifierProvider.notifier).deleteRegistro(registro.id);
+      await ref
+          .read(registrosNotifierProvider.notifier)
+          .deleteRegistro(registro.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -216,7 +229,10 @@ class HistorialScreen extends ConsumerWidget {
                     label: const Text('Todas'),
                     selected: modalidadFiltro == null,
                     onSelected: (_) {
-                      ref.read(historialFiltroModalidadProvider.notifier).state = null;
+                      ref
+                              .read(historialFiltroModalidadProvider.notifier)
+                              .state =
+                          null;
                     },
                   ),
                   const SizedBox(width: 8),
@@ -228,8 +244,11 @@ class HistorialScreen extends ConsumerWidget {
                         label: Text(mod),
                         selected: isSelected,
                         onSelected: (selected) {
-                          ref.read(historialFiltroModalidadProvider.notifier).state =
-                              selected ? mod : null;
+                          ref
+                              .read(historialFiltroModalidadProvider.notifier)
+                              .state = selected
+                              ? mod
+                              : null;
                         },
                       ),
                     );
@@ -253,7 +272,9 @@ class HistorialScreen extends ConsumerWidget {
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
                     ),
                   ),
                   Text(
@@ -282,7 +303,9 @@ class HistorialScreen extends ConsumerWidget {
                           Icon(
                             Icons.history_toggle_off_rounded,
                             size: 64,
-                            color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                            color: isDark
+                                ? const Color(0xFF475569)
+                                : const Color(0xFFCBD5E1),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -290,7 +313,9 @@ class HistorialScreen extends ConsumerWidget {
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -298,7 +323,9 @@ class HistorialScreen extends ConsumerWidget {
                             'Tus horas registradas aparecerán aquí',
                             style: GoogleFonts.inter(
                               fontSize: 13,
-                              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                              color: isDark
+                                  ? const Color(0xFF64748B)
+                                  : const Color(0xFF94A3B8),
                             ),
                           ),
                         ],
@@ -306,7 +333,10 @@ class HistorialScreen extends ConsumerWidget {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     itemCount: registrosFiltrados.length,
                     itemBuilder: (context, index) {
                       final reg = registrosFiltrados[index];
@@ -325,7 +355,302 @@ class HistorialScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHistorialItem(BuildContext context, WidgetRef ref, RegistroHora reg) {
+  Future<void> _mostrarDetalleJornada(
+    BuildContext context,
+    WidgetRef ref,
+    RegistroHora reg,
+  ) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 70,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle superior
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Título y Horas
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Detalle de Jornada',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF4F46E5),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormatters.fechaCompleta(reg.fecha),
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${reg.horasComputables} hrs',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              // Chips de info: Horario y Modalidad
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 14,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Horario',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${reg.horaInicio} - ${reg.horaFin}',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.business_rounded,
+                                size: 14,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Modalidad',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            reg.modalidad,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (reg.actividades.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(
+                  'Actividades Realizadas',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Text(
+                    reg.actividades,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: isDark
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFF334155),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // Botones de acción: Editar y Eliminar
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Colors.redAccent),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _confirmarEliminar(context, ref, reg);
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      label: const Text('Eliminar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        ref
+                            .read(registroFormNotifierProvider.notifier)
+                            .cargarParaEdicion(reg);
+                        onEditRegistro?.call(reg);
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text('Editar Registro'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHistorialItem(
+    BuildContext context,
+    WidgetRef ref,
+    RegistroHora reg,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dismissible(
@@ -348,10 +673,7 @@ class HistorialScreen extends ConsumerWidget {
         padding: const EdgeInsets.only(bottom: 10),
         child: CustomCard(
           padding: const EdgeInsets.all(14),
-          onTap: () {
-            ref.read(registroFormNotifierProvider.notifier).cargarParaEdicion(reg);
-            onEditRegistro?.call(reg);
-          },
+          onTap: () => _mostrarDetalleJornada(context, ref, reg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -363,7 +685,8 @@ class HistorialScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                          color: const Color(0xFF4F46E5)
+                              .withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -382,20 +705,44 @@ class HistorialScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${reg.horasComputables} hrs',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF10B981),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${reg.horasComputables} hrs',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF10B981),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                          color: Colors.redAccent,
+                        ),
+                        tooltip: 'Eliminar registro',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        onPressed: () => _confirmarEliminar(context, ref, reg),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -429,17 +776,25 @@ class HistorialScreen extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
                     ),
                   ),
                   child: Text(
                     reg.actividades,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                      color: isDark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF475569),
                     ),
                   ),
                 ),
@@ -451,7 +806,11 @@ class HistorialScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTag({required IconData icon, required String label, required bool isDark}) {
+  Widget _buildTag({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -461,7 +820,11 @@ class HistorialScreen extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          Icon(
+            icon,
+            size: 12,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+          ),
           const SizedBox(width: 4),
           Text(
             label,

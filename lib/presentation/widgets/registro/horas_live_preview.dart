@@ -6,14 +6,12 @@ import '../common/custom_card.dart';
 class HorasLivePreview extends StatelessWidget {
   final String horaInicio;
   final String horaFin;
-  final int refrigerioMinutos;
   final double horasComputables;
 
   const HorasLivePreview({
     super.key,
     required this.horaInicio,
     required this.horaFin,
-    required this.refrigerioMinutos,
     required this.horasComputables,
   });
 

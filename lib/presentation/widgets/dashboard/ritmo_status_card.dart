@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:practi_horas_app/domain/entities/metricas_dashboard.dart';
+
 import '../common/custom_card.dart';
 
 class RitmoStatusCard extends StatelessWidget {
@@ -74,7 +75,9 @@ class RitmoStatusCard extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                         Text(
@@ -90,7 +93,10 @@ class RitmoStatusCard extends StatelessWidget {
                 ),
                 if (metricas.estadoRitmo != EstadoRitmo.sinFechas)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: badgeColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
@@ -114,9 +120,11 @@ class RitmoStatusCard extends StatelessWidget {
             Text(
               metricas.mensajeRitmo,
               style: GoogleFonts.inter(
-                fontSize: 13,
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                color: isDark
+                    ? const Color(0xFFE2E8F0)
+                    : const Color(0xFF334155),
                 height: 1.35,
               ),
             ),
@@ -128,32 +136,22 @@ class RitmoStatusCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildPill(
-                    context,
-                    icon: Icons.calendar_today_rounded,
-                    label: 'Esperadas a hoy: ${metricas.horasEsperadasHoy}h',
-                    color: const Color(0xFF6366F1),
-                  ),
-                  if (metricas.diasHabilesRestantes > 0 && metricas.horasRestantes > 0)
+                  if (metricas.diasHabilesRestantes > 0 &&
+                      metricas.horasRestantes > 0)
                     _buildPill(
                       context,
                       icon: Icons.speed_rounded,
-                      label: 'Meta diaria: ${metricas.ritmoDiarioSugerido}h/día',
+                      label:
+                          'Meta diaria: ${metricas.ritmoDiarioSugerido}h/día',
                       color: const Color(0xFF06B6D4),
                     ),
                   if (metricas.diasHabilesRestantes > 0)
                     _buildPill(
                       context,
                       icon: Icons.date_range_rounded,
-                      label: '${metricas.diasHabilesRestantes} días hábiles restantes',
+                      label:
+                          '${metricas.diasHabilesRestantes} días hábiles restantes',
                       color: const Color(0xFF10B981),
-                    ),
-                  if (metricas.horasPreviasCursadas > 0)
-                    _buildPill(
-                      context,
-                      icon: Icons.history_edu_rounded,
-                      label: '+${metricas.horasPreviasCursadas}h previas',
-                      color: const Color(0xFF8B5CF6),
                     ),
                 ],
               ),
@@ -170,13 +168,20 @@ class RitmoStatusCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPill(BuildContext context, {required IconData icon, required String label, required Color color}) {
+  Widget _buildPill(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? color.withValues(alpha: 0.15) : color.withValues(alpha: 0.08),
+        color: isDark
+            ? color.withValues(alpha: 0.15)
+            : color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
       ),

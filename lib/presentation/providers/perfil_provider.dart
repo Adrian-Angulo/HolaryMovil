@@ -11,42 +11,83 @@ class PerfilNotifier extends StateNotifier<AsyncValue<Perfil>> {
   }
 
   Future<void> loadPerfil() async {
-    try {
-      state = const AsyncValue.loading();
-      final getPerfil = _ref.read(getPerfilUseCaseProvider);
-      final perfil = await getPerfil.execute();
-      state = AsyncValue.data(perfil);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    state = const AsyncValue.loading();
+    final getPerfil = _ref.read(getPerfilUseCaseProvider);
+    final result = await getPerfil.execute();
+
+    result.fold(
+      (failure) {
+        state = AsyncValue.error(failure.message, StackTrace.current);
+      },
+      (perfil) async {
+        state = AsyncValue.data(perfil);
+        await _ref
+            .read(sessionStorageProvider)
+            .setPerfilCompletado(perfil.perfilCompletado);
+      },
+    );
   }
 
   Future<void> updatePerfil(Perfil perfil) async {
-    try {
-      final updatePerfil = _ref.read(updatePerfilUseCaseProvider);
-      await updatePerfil.execute(perfil);
-      state = AsyncValue.data(perfil);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    final updatePerfil = _ref.read(updatePerfilUseCaseProvider);
+    final result = await updatePerfil.execute(perfil);
+
+    result.fold(
+      (failure) {
+        state = AsyncValue.error(failure.message, StackTrace.current);
+      },
+      (_) async {
+        state = AsyncValue.data(perfil);
+        await _ref
+            .read(sessionStorageProvider)
+            .setPerfilCompletado(perfil.perfilCompletado);
+      },
+    );
   }
 
   Future<void> updateConfiguracionGeneral({
     required String nombre,
     required double metaHoras,
     required double horasInicialesPrevias,
+    double? horasMinimasSemanales,
+    bool? perfilCompletado,
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
-    final current = state.value;
-    if (current == null) return;
+    final current = state.value ?? Perfil.defaultPerfil();
 
     final updated = current.copyWith(
       nombre: nombre,
       metaHorasTotal: metaHoras,
       horasInicialesPrevias: horasInicialesPrevias,
+      horasMinimasSemanales:
+          horasMinimasSemanales ?? current.horasMinimasSemanales,
+      perfilCompletado: perfilCompletado ?? current.perfilCompletado,
       fechaInicio: fechaInicio,
       fechaFin: fechaFin,
+    );
+    await updatePerfil(updated);
+  }
+
+  Future<void> guardarPerfilInicial({
+    required String nombre,
+    required double metaHoras,
+    required double horasInicialesPrevias,
+    required double horasMinimasSemanales,
+    DateTime? fechaInicio,
+    DateTime? fechaFin,
+    Map<String, HorarioDia>? horarioSemanal,
+  }) async {
+    final current = state.value ?? Perfil.defaultPerfil();
+    final updated = current.copyWith(
+      nombre: nombre,
+      metaHorasTotal: metaHoras,
+      horasInicialesPrevias: horasInicialesPrevias,
+      horasMinimasSemanales: horasMinimasSemanales,
+      perfilCompletado: true,
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin,
+      horarioSemanal: horarioSemanal ?? current.horarioSemanal,
     );
     await updatePerfil(updated);
   }

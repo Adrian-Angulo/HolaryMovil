@@ -63,9 +63,9 @@ class _HomeNavigationScreenState extends ConsumerState<HomeNavigationScreen> {
             label: 'Historial',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: 'Ajustes',
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Perfil',
           ),
         ],
       ),

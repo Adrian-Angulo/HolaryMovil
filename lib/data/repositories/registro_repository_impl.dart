@@ -1,49 +1,89 @@
+import '../../core/errors/either.dart';
+import '../../core/errors/failures.dart';
 import '../../domain/entities/registro_hora.dart';
 import '../../domain/repositories/i_registro_repository.dart';
-import '../datasources/local_storage_datasource.dart';
+import '../datasources/registro_remote_datasource.dart';
 import '../mappers/registro_mapper.dart';
 
 class RegistroRepositoryImpl implements IRegistroRepository {
-  final LocalStorageDataSource _dataSource;
+  final IRegistroRemoteDataSource _remoteDataSource;
 
-  RegistroRepositoryImpl(this._dataSource);
+  RegistroRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<List<RegistroHora>> getRegistros() async {
-    final hiveModels = _dataSource.getAllRegistros();
-    return hiveModels.map(RegistroMapper.toDomain).toList();
+  Future<Either<Failure, List<RegistroHora>>> getRegistros() async {
+    try {
+      final apiModels = await _remoteDataSource.getRegistros();
+      return Right(apiModels.map(RegistroMapper.toDomain).toList());
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 
   @override
-  Future<RegistroHora?> getRegistroById(String id) async {
-    final hiveModel = _dataSource.getRegistroById(id);
-    if (hiveModel == null) return null;
-    return RegistroMapper.toDomain(hiveModel);
+  Future<Either<Failure, RegistroHora?>> getRegistroById(String id) async {
+    final result = await getRegistros();
+    return result.fold(
+      (failure) => Left(failure),
+      (all) {
+        try {
+          final found = all.firstWhere((r) => r.id == id);
+          return Right(found);
+        } catch (_) {
+          return const Right(null);
+        }
+      },
+    );
   }
 
   @override
-  Future<void> saveRegistro(RegistroHora registro) async {
-    final hiveModel = RegistroMapper.toHive(registro);
-    await _dataSource.saveRegistro(hiveModel);
+  Future<Either<Failure, void>> saveRegistro(RegistroHora registro) async {
+    try {
+      final apiModel = RegistroMapper.toApi(registro);
+      await _remoteDataSource.createRegistro(apiModel);
+      return const Right(null);
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 
   @override
-  Future<void> updateRegistro(RegistroHora registro) async {
-    final hiveModel = RegistroMapper.toHive(registro);
-    await _dataSource.saveRegistro(hiveModel);
+  Future<Either<Failure, void>> updateRegistro(RegistroHora registro) async {
+    try {
+      final apiModel = RegistroMapper.toApi(registro);
+      await _remoteDataSource.updateRegistro(apiModel);
+      return const Right(null);
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 
   @override
-  Future<void> deleteRegistro(String id) async {
-    await _dataSource.deleteRegistro(id);
+  Future<Either<Failure, void>> deleteRegistro(String id) async {
+    try {
+      await _remoteDataSource.deleteRegistro(id);
+      return const Right(null);
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 
   @override
-  Future<List<RegistroHora>> getRegistrosByRangoFecha(DateTime inicio, DateTime fin) async {
-    final all = await getRegistros();
-    return all.where((r) =>
-      (r.fecha.isAfter(inicio) || r.fecha.isAtSameMomentAs(inicio)) &&
-      (r.fecha.isBefore(fin) || r.fecha.isAtSameMomentAs(fin))
-    ).toList();
+  Future<Either<Failure, List<RegistroHora>>> getRegistrosByRangoFecha(
+    DateTime inicio,
+    DateTime fin,
+  ) async {
+    try {
+      final desde =
+          '${inicio.year.toString().padLeft(4, '0')}-${inicio.month.toString().padLeft(2, '0')}-${inicio.day.toString().padLeft(2, '0')}';
+      final hasta =
+          '${fin.year.toString().padLeft(4, '0')}-${fin.month.toString().padLeft(2, '0')}-${fin.day.toString().padLeft(2, '0')}';
+
+      final apiModels =
+          await _remoteDataSource.getRegistros(desde: desde, hasta: hasta);
+      return Right(apiModels.map(RegistroMapper.toDomain).toList());
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 }

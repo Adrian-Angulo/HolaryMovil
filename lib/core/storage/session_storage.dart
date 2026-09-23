@@ -1,0 +1,79 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/app_constants.dart';
+
+class SessionStorage {
+  final SharedPreferences _prefs;
+
+  SessionStorage(this._prefs);
+
+  static Future<SessionStorage> create() async {
+    final prefs = await SharedPreferences.getInstance();
+    return SessionStorage(prefs);
+  }
+
+  String? getToken() => _prefs.getString(AppConstants.tokenKey);
+
+  Future<void> saveToken(String token) async {
+    await _prefs.setString(AppConstants.tokenKey, token);
+  }
+
+  String? getRefreshToken() => _prefs.getString(AppConstants.refreshTokenKey);
+
+  Future<void> saveRefreshToken(String refreshToken) async {
+    await _prefs.setString(AppConstants.refreshTokenKey, refreshToken);
+  }
+
+  String? getUserId() => _prefs.getString(AppConstants.userIdKey);
+
+  Future<void> saveUserId(String userId) async {
+    await _prefs.setString(AppConstants.userIdKey, userId);
+  }
+
+  String? getUserEmail() => _prefs.getString(AppConstants.userEmailKey);
+
+  Future<void> saveUserEmail(String email) async {
+    await _prefs.setString(AppConstants.userEmailKey, email);
+  }
+
+  String? getUserName() => _prefs.getString(AppConstants.userNameKey);
+
+  Future<void> saveUserName(String name) async {
+    await _prefs.setString(AppConstants.userNameKey, name);
+  }
+
+  bool isPerfilCompletado() => _prefs.getBool(AppConstants.perfilCompletadoKey) ?? false;
+
+  Future<void> setPerfilCompletado(bool value) async {
+    await _prefs.setBool(AppConstants.perfilCompletadoKey, value);
+  }
+
+  bool hasSession() {
+    final token = getToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  Future<void> clearSession() async {
+    await _prefs.remove(AppConstants.tokenKey);
+    await _prefs.remove(AppConstants.refreshTokenKey);
+    await _prefs.remove(AppConstants.userIdKey);
+    await _prefs.remove(AppConstants.userEmailKey);
+    await _prefs.remove(AppConstants.userNameKey);
+    await _prefs.remove(AppConstants.perfilCompletadoKey);
+  }
+
+  String getCustomBaseUrl() {
+    return _prefs.getString(AppConstants.customApiUrlKey) ?? AppConstants.apiBaseUrl;
+  }
+
+  Future<void> setCustomBaseUrl(String url) async {
+    await _prefs.setString(AppConstants.customApiUrlKey, url);
+  }
+
+  String getThemeMode() {
+    return _prefs.getString('app_theme_mode') ?? 'system';
+  }
+
+  Future<void> saveThemeMode(String mode) async {
+    await _prefs.setString('app_theme_mode', mode);
+  }
+}

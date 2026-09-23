@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/date_formatters.dart';
 import '../../core/utils/time_calculator.dart';
@@ -13,13 +14,11 @@ import '../widgets/registro/horas_live_preview.dart';
 class NuevoRegistroScreen extends ConsumerStatefulWidget {
   final VoidCallback? onRegistroGuardado;
 
-  const NuevoRegistroScreen({
-    super.key,
-    this.onRegistroGuardado,
-  });
+  const NuevoRegistroScreen({super.key, this.onRegistroGuardado});
 
   @override
-  ConsumerState<NuevoRegistroScreen> createState() => _NuevoRegistroScreenState();
+  ConsumerState<NuevoRegistroScreen> createState() =>
+      _NuevoRegistroScreenState();
 }
 
 class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
@@ -43,12 +42,22 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
 
   Future<void> _seleccionarFecha(BuildContext context) async {
     final formState = ref.read(registroFormNotifierProvider);
+    final first = DateTime(2020);
+    final last = DateTime(2035);
+    final initial = formState.fecha;
+    final validInitial = initial.isBefore(first)
+        ? first
+        : (initial.isAfter(last) ? last : initial);
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: formState.fecha,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      locale: const Locale('es'),
+      initialDate: validInitial,
+      firstDate: first,
+      lastDate: last,
+      locale: const Locale('es', 'ES'),
+      helpText: 'Fecha de la Jornada',
+      cancelText: 'Cancelar',
+      confirmText: 'Seleccionar',
     );
 
     if (picked != null) {
@@ -103,12 +112,24 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     final formState = ref.read(registroFormNotifierProvider);
 
     // Guardar actividades actuales del controller
+    if (_actividadesController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Las actividades son obligatorias.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     formNotifier.setActividades(_actividadesController.text);
 
     if (formState.horasComputables <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Las horas computables deben ser mayores a 0. Verifica la hora de inicio y fin.'),
+          content: Text(
+            '⚠️ Las horas computables deben ser mayores a 0. Verifica la hora de inicio y fin.',
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -168,8 +189,12 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
             IconButton(
               icon: const Icon(Icons.close),
               onPressed: () {
-                ref.read(registroFormNotifierProvider.notifier).inicializarConFecha(DateTime.now());
+                ref
+                    .read(registroFormNotifierProvider.notifier)
+                    .inicializarConFecha(DateTime.now());
                 _actividadesController.clear();
+
+                
               },
             ),
         ],
@@ -181,7 +206,7 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Selector de Fecha con Auto-detección (FadeInDown)
+              // 1. Selector de Fecha con Auto-detección
               FadeInDown(
                 duration: const Duration(milliseconds: 400),
                 child: CustomCard(
@@ -197,12 +222,17 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                           if (!formState.isDiaConfiguradoActivo)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
@@ -223,17 +253,28 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                         onTap: () => _seleccionarFecha(context),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFCBD5E1),
                             ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F46E5), size: 20),
+                              const Icon(
+                                Icons.calendar_today_rounded,
+                                color: Color(0xFF4F46E5),
+                                size: 20,
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
@@ -244,7 +285,10 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                                   ),
                                 ),
                               ),
-                              const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.grey,
+                              ),
                             ],
                           ),
                         ),
@@ -255,7 +299,7 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Horas de Entrada y Salida (FadeInUp)
+              // 2. Horas de Entrada y Salida
               FadeInUp(
                 duration: const Duration(milliseconds: 450),
                 delay: const Duration(milliseconds: 100),
@@ -269,7 +313,9 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -283,10 +329,14 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFCBD5E1),
                                   ),
                                 ),
                                 child: Column(
@@ -294,14 +344,20 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        const Icon(Icons.login_rounded, size: 14, color: Color(0xFF10B981)),
+                                        const Icon(
+                                          Icons.login_rounded,
+                                          size: 14,
+                                          color: Color(0xFF10B981),
+                                        ),
                                         const SizedBox(width: 6),
                                         Text(
                                           'Entrada',
                                           style: GoogleFonts.inter(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
-                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B),
                                           ),
                                         ),
                                       ],
@@ -328,10 +384,14 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFCBD5E1),
                                   ),
                                 ),
                                 child: Column(
@@ -339,14 +399,20 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        const Icon(Icons.logout_rounded, size: 14, color: Color(0xFFEF4444)),
+                                        const Icon(
+                                          Icons.logout_rounded,
+                                          size: 14,
+                                          color: Color(0xFFEF4444),
+                                        ),
                                         const SizedBox(width: 6),
                                         Text(
                                           'Salida',
                                           style: GoogleFonts.inter(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
-                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B),
                                           ),
                                         ),
                                       ],
@@ -372,53 +438,10 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 3. Descuento de Almuerzo / Refrigerio (FadeInUp)
+              // 3. Modalidad de Trabajo
               FadeInUp(
                 duration: const Duration(milliseconds: 450),
                 delay: const Duration(milliseconds: 150),
-                child: CustomCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Refrigerio / Almuerzo (Minutos de descuento)',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [0, 30, 45, 60].map((min) {
-                          final isSelected = formState.descuentoAlmuerzoMinutos == min;
-                          return ChoiceChip(
-                            label: Text(min == 0 ? 'Sin refrigerio (0m)' : '$min min'),
-                            selected: isSelected,
-                            onSelected: (_) {
-                              ref.read(registroFormNotifierProvider.notifier).setDescuentoMinutos(min);
-                            },
-                            selectedColor: const Color(0xFF4F46E5),
-                            labelStyle: GoogleFonts.inter(
-                              color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 4. Modalidad de Trabajo (FadeInUp)
-              FadeInUp(
-                duration: const Duration(milliseconds: 450),
-                delay: const Duration(milliseconds: 200),
                 child: CustomCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -429,7 +452,9 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -438,22 +463,34 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                           final isSelected = formState.modalidad == mod;
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
                               child: ChoiceChip(
                                 label: Center(
                                   child: Text(
                                     mod,
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                      color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : (isDark
+                                                ? Colors.white70
+                                                : Colors.black87),
                                     ),
                                   ),
                                 ),
                                 selected: isSelected,
                                 selectedColor: const Color(0xFF4F46E5),
                                 onSelected: (_) {
-                                  ref.read(registroFormNotifierProvider.notifier).setModalidad(mod);
+                                  ref
+                                      .read(
+                                        registroFormNotifierProvider.notifier,
+                                      )
+                                      .setModalidad(mod);
                                 },
                               ),
                             ),
@@ -465,35 +502,34 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // 5. Previsualización de Horas Calculadas (ZoomIn suave)
               ZoomIn(
                 duration: const Duration(milliseconds: 400),
-                delay: const Duration(milliseconds: 250),
+                delay: const Duration(milliseconds: 200),
                 child: HorasLivePreview(
                   horaInicio: formState.horaInicio,
                   horaFin: formState.horaFin,
-                  refrigerioMinutos: formState.descuentoAlmuerzoMinutos,
                   horasComputables: formState.horasComputables,
                 ),
               ),
               const SizedBox(height: 16),
 
-              // 6. Actividades Realizadas (FadeInUp)
+              // 5. Actividades Realizadas
               FadeInUp(
                 duration: const Duration(milliseconds: 450),
-                delay: const Duration(milliseconds: 300),
+                delay: const Duration(milliseconds: 250),
                 child: CustomCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Actividades Realizadas (Opcional)',
+                        'Actividades Realizadas',
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -503,6 +539,11 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                         decoration: const InputDecoration(
                           hintText: 'Ej: Desarrollo del módulo de autenticación, reunión con el supervisor...',
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -510,19 +551,28 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
               ),
               const SizedBox(height: 24),
 
-              // 7. Botón de Guardado (BounceIn)
+              // 6. Botón de Guardado
               FadeInUp(
                 duration: const Duration(milliseconds: 450),
-                delay: const Duration(milliseconds: 350),
+                delay: const Duration(milliseconds: 300),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: _guardarRegistro,
-                    icon: Icon(formState.isEditing ? Icons.check_circle_rounded : Icons.save_rounded),
+                    icon: Icon(
+                      formState.isEditing
+                          ? Icons.check_circle_rounded
+                          : Icons.save_rounded,
+                    ),
                     label: Text(
-                      formState.isEditing ? 'Actualizar Registro' : 'Guardar Jornada',
-                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
+                      formState.isEditing
+                          ? 'Actualizar Registro'
+                          : 'Guardar Jornada',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),

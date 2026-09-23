@@ -1,22 +1,33 @@
+import '../../core/errors/either.dart';
+import '../../core/errors/failures.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/repositories/i_perfil_repository.dart';
-import '../datasources/local_storage_datasource.dart';
+import '../datasources/perfil_remote_datasource.dart';
 import '../mappers/perfil_mapper.dart';
 
 class PerfilRepositoryImpl implements IPerfilRepository {
-  final LocalStorageDataSource _dataSource;
+  final IPerfilRemoteDataSource _remoteDataSource;
 
-  PerfilRepositoryImpl(this._dataSource);
+  PerfilRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<Perfil> getPerfil() async {
-    final hiveModel = _dataSource.getPerfil();
-    return PerfilMapper.toDomain(hiveModel);
+  Future<Either<Failure, Perfil>> getPerfil() async {
+    try {
+      final apiModel = await _remoteDataSource.getProfile();
+      return Right(PerfilMapper.toDomain(apiModel));
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 
   @override
-  Future<void> savePerfil(Perfil perfil) async {
-    final hiveModel = PerfilMapper.toHive(perfil);
-    await _dataSource.savePerfil(hiveModel);
+  Future<Either<Failure, void>> savePerfil(Perfil perfil) async {
+    try {
+      final apiModel = PerfilMapper.toApi(perfil);
+      await _remoteDataSource.updateProfile(apiModel);
+      return const Right(null);
+    } catch (e) {
+      return Left(Failure.fromException(e));
+    }
   }
 }

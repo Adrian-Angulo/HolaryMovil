@@ -1,10 +1,15 @@
+import '../../core/errors/either.dart';
+import '../../core/errors/failures.dart';
 import '../entities/registro_hora.dart';
 
 abstract class IRegistroRepository {
-  Future<List<RegistroHora>> getRegistros();
-  Future<RegistroHora?> getRegistroById(String id);
-  Future<void> saveRegistro(RegistroHora registro);
-  Future<void> updateRegistro(RegistroHora registro);
-  Future<void> deleteRegistro(String id);
-  Future<List<RegistroHora>> getRegistrosByRangoFecha(DateTime inicio, DateTime fin);
+  Future<Either<Failure, List<RegistroHora>>> getRegistros();
+  Future<Either<Failure, RegistroHora?>> getRegistroById(String id);
+  Future<Either<Failure, void>> saveRegistro(RegistroHora registro);
+  Future<Either<Failure, void>> updateRegistro(RegistroHora registro);
+  Future<Either<Failure, void>> deleteRegistro(String id);
+  Future<Either<Failure, List<RegistroHora>>> getRegistrosByRangoFecha(
+    DateTime inicio,
+    DateTime fin,
+  );
 }

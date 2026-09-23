@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 class TimeCalculator {
-  /// Calcula las horas computables netas en formato decimal (ej: 4.5 horas).
+  /// Calcula las horas computables netas en formato decimal (ej: 5.0 horas).
   /// [inicio] y [fin] deben estar en formato "HH:mm" (24h).
-  /// [descuentoMinutos] es la cantidad de minutos descontados por almuerzo/refrigerio.
   static double calcularHorasNetas(
     String inicio,
-    String fin,
-    int descuentoMinutos,
-  ) {
+    String fin, [
+    int descuentoMinutos = 0,
+  ]) {
     try {
       final partesIni = inicio.split(':').map(int.parse).toList();
       final partesFin = fin.split(':').map(int.parse).toList();
@@ -32,9 +31,9 @@ class TimeCalculator {
   /// Calcula minutos totales netos
   static int calcularMinutosNetos(
     String inicio,
-    String fin,
-    int descuentoMinutos,
-  ) {
+    String fin, [
+    int descuentoMinutos = 0,
+  ]) {
     try {
       final partesIni = inicio.split(':').map(int.parse).toList();
       final partesFin = fin.split(':').map(int.parse).toList();
@@ -66,7 +65,7 @@ class TimeCalculator {
     }
   }
 
-  /// Formatea horas decimales a texto legible como "5h 30m" o "5.0 hrs"
+  /// Formatea horas decimales a texto legible como "5h 30m" o "5 h"
   static String formatHorasHumanReadable(double horasDecimales) {
     if (horasDecimales <= 0) return '0 hrs';
     final horas = horasDecimales.floor();

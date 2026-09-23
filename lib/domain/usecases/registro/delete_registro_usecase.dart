@@ -1,3 +1,5 @@
+import '../../../core/errors/either.dart';
+import '../../../core/errors/failures.dart';
 import '../../repositories/i_registro_repository.dart';
 
 class DeleteRegistroUseCase {
@@ -5,7 +7,7 @@ class DeleteRegistroUseCase {
 
   DeleteRegistroUseCase(this._repository);
 
-  Future<void> execute(String id) {
+  Future<Either<Failure, void>> execute(String id) {
     return _repository.deleteRegistro(id);
   }
 }
