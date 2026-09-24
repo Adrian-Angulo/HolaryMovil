@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:practi_horas_app/features/registros/domain/entities/registro_hora.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../domain/entities/registro_hora.dart';
+
 import 'date_formatters.dart';
 
 class CsvExporter {
@@ -82,6 +83,18 @@ class CsvExporter {
       [XFile(file.path, mimeType: 'text/csv')],
       text: 'Reporte de Horas de Prácticas - $nombrePracticante',
       subject: 'Reporte de Horas CSV - $nombrePracticante',
+    );
+  }
+
+  static Future<void> exportarYCompartir(
+    List<RegistroHora> registros, {
+    String nombreEstudiante = 'Practicante',
+    double horasPrevias = 0.0,
+  }) {
+    return exportarYCompartirCsv(
+      registros: registros,
+      horasInicialesPrevias: horasPrevias,
+      nombrePracticante: nombreEstudiante,
     );
   }
 

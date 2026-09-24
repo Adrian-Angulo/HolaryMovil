@@ -61,13 +61,7 @@ class SessionStorage {
     await _prefs.remove(AppConstants.perfilCompletadoKey);
   }
 
-  String getCustomBaseUrl() {
-    return _prefs.getString(AppConstants.customApiUrlKey) ?? AppConstants.apiBaseUrl;
-  }
-
-  Future<void> setCustomBaseUrl(String url) async {
-    await _prefs.setString(AppConstants.customApiUrlKey, url);
-  }
+  String getCustomBaseUrl() => AppConstants.apiBaseUrl;
 
   String getThemeMode() {
     return _prefs.getString('app_theme_mode') ?? 'system';

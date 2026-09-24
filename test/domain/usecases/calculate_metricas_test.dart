@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:practi_horas_app/domain/entities/metricas_dashboard.dart';
-import 'package:practi_horas_app/domain/entities/perfil.dart';
-import 'package:practi_horas_app/domain/entities/registro_hora.dart';
-import 'package:practi_horas_app/domain/usecases/estadisticas/calculate_metricas_usecase.dart';
+import 'package:practi_horas_app/features/dashboard/domain/entities/metricas_dashboard.dart';
+import 'package:practi_horas_app/features/dashboard/domain/usecases/calculate_metricas_usecase.dart';
+import 'package:practi_horas_app/features/perfil/domain/entities/perfil.dart';
+import 'package:practi_horas_app/features/registros/domain/entities/registro_hora.dart';
 
 void main() {
   group('CalculateMetricasUseCase Tests', () {

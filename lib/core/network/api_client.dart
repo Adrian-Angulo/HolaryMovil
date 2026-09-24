@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
+
+import '../constants/app_constants.dart';
 import '../storage/session_storage.dart';
 import 'api_exceptions.dart';
 
@@ -9,12 +12,10 @@ class ApiClient {
   final http.Client _httpClient;
   final SessionStorage sessionStorage;
 
-  ApiClient({
-    http.Client? httpClient,
-    required this.sessionStorage,
-  }) : _httpClient = httpClient ?? http.Client();
+  ApiClient({http.Client? httpClient, required this.sessionStorage})
+    : _httpClient = httpClient ?? http.Client();
 
-  String get baseUrl => sessionStorage.getCustomBaseUrl();
+  String get baseUrl => AppConstants.apiBaseUrl;
 
   Map<String, String> _buildHeaders([Map<String, String>? extraHeaders]) {
     final headers = <String, String>{
@@ -35,7 +36,9 @@ class ApiClient {
   }
 
   Uri _buildUri(String path, [Map<String, dynamic>? queryParameters]) {
-    final fullPath = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final fullPath = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
     final pathNormalized = path.startsWith('/') ? path : '/$path';
     final urlString = '$fullPath$pathNormalized';
 
@@ -67,7 +70,9 @@ class ApiClient {
     } on SocketException {
       throw NetworkException();
     } on TimeoutException {
-      throw NetworkException(message: 'Tiempo de espera agotado al conectar con el servidor.');
+      throw NetworkException(
+        message: 'Tiempo de espera agotado al conectar con el servidor.',
+      );
     }
   }
 
@@ -91,7 +96,9 @@ class ApiClient {
     } on SocketException {
       throw NetworkException();
     } on TimeoutException {
-      throw NetworkException(message: 'Tiempo de espera agotado al conectar con el servidor.');
+      throw NetworkException(
+        message: 'Tiempo de espera agotado al conectar con el servidor.',
+      );
     }
   }
 
@@ -115,7 +122,9 @@ class ApiClient {
     } on SocketException {
       throw NetworkException();
     } on TimeoutException {
-      throw NetworkException(message: 'Tiempo de espera agotado al conectar con el servidor.');
+      throw NetworkException(
+        message: 'Tiempo de espera agotado al conectar con el servidor.',
+      );
     }
   }
 
@@ -134,7 +143,9 @@ class ApiClient {
     } on SocketException {
       throw NetworkException();
     } on TimeoutException {
-      throw NetworkException(message: 'Tiempo de espera agotado al conectar con el servidor.');
+      throw NetworkException(
+        message: 'Tiempo de espera agotado al conectar con el servidor.',
+      );
     }
   }
 
@@ -159,19 +170,22 @@ class ApiClient {
     if (body is Map) {
       if (body['message'] is String && (body['message'] as String).isNotEmpty) {
         message = body['message'] as String;
-      } else if (body['error'] is Map && (body['error'] as Map)['message'] is String) {
+      } else if (body['error'] is Map &&
+          (body['error'] as Map)['message'] is String) {
         message = (body['error'] as Map)['message'] as String;
       }
 
       if (body['error'] is String) {
         errorType = body['error'] as String;
-      } else if (body['error'] is Map && (body['error'] as Map)['code'] is String) {
+      } else if (body['error'] is Map &&
+          (body['error'] as Map)['code'] is String) {
         errorType = (body['error'] as Map)['code'] as String;
       }
 
       if (body['detalles'] != null) {
         details = body['detalles'];
-      } else if (body['error'] is Map && (body['error'] as Map)['detalles'] != null) {
+      } else if (body['error'] is Map &&
+          (body['error'] as Map)['detalles'] != null) {
         details = (body['error'] as Map)['detalles'];
       }
     }

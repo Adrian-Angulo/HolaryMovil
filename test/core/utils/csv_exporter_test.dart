@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:practi_horas_app/core/utils/csv_exporter.dart';
-import 'package:practi_horas_app/domain/entities/registro_hora.dart';
+import 'package:practi_horas_app/features/registros/domain/entities/registro_hora.dart';
 
 void main() {
   group('CsvExporter Tests', () {

@@ -3,11 +3,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/constants/app_constants.dart';
+import 'core/di/dependency_injection.dart';
 import 'core/storage/session_storage.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/providers/dependency_injection.dart';
-import 'presentation/providers/theme_provider.dart';
-import 'presentation/screens/splash_screen.dart';
+import 'features/perfil/presentation/providers/theme_provider.dart';
+import 'features/shell/presentation/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
