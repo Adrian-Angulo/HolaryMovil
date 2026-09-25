@@ -64,7 +64,7 @@ class HorarioDiaItem extends StatelessWidget {
         ),
         subtitle: Text(
           horario.activo
-              ? '${horario.horaInicio} - ${horario.horaFin} • ${horario.modalidad}'
+              ? '${horario.horaInicio} - ${horario.horaFin} • ${horario.modalidad}${horario.refrigerioMinutos > 0 ? ' • ${horario.refrigerioMinutos}m comida' : ''} (${horario.horasEfectivas.toStringAsFixed(1)}h)'
               : 'Día no laboral / descanso',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,

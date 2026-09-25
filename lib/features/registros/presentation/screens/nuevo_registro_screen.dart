@@ -1,5 +1,6 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -25,6 +26,7 @@ class NuevoRegistroScreen extends ConsumerStatefulWidget {
 class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _actividadesController = TextEditingController();
+  final TextEditingController _descuentoController = TextEditingController();
   bool _isSaving = false;
 
   @override
@@ -33,12 +35,16 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final formState = ref.read(registroFormNotifierProvider);
       _actividadesController.text = formState.actividades;
+      _descuentoController.text = formState.descuentoAlmuerzoMinutos > 0
+          ? formState.descuentoAlmuerzoMinutos.toString()
+          : '0';
     });
   }
 
   @override
   void dispose() {
     _actividadesController.dispose();
+    _descuentoController.dispose();
     super.dispose();
   }
 
@@ -109,74 +115,7 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     }
   }
 
-  Future<void> _dialogoDescansoPersonalizado(BuildContext context) async {
-    final formState = ref.read(registroFormNotifierProvider);
-    final currentMin = formState.descuentoAlmuerzoMinutos;
-    final controller = TextEditingController(
-      text: currentMin > 0 ? currentMin.toString() : '',
-    );
 
-    final result = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.restaurant_rounded, color: Color(0xFFF59E0B)),
-            const SizedBox(width: 8),
-            Text(
-              'Tiempo de Descanso',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Indica los minutos dedicados a almuerzo o refrigerio para descontarlos de las horas de práctica:',
-              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Minutos (0 a 180)',
-                suffixText: 'min',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4F46E5),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final val = int.tryParse(controller.text.trim()) ?? 0;
-              Navigator.of(ctx).pop(val.clamp(0, 180));
-            },
-            child: const Text('Aplicar'),
-          ),
-        ],
-      ),
-    );
-
-    if (result != null) {
-      ref
-          .read(registroFormNotifierProvider.notifier)
-          .setDescuentoAlmuerzoMinutos(result);
-    }
-  }
 
   Future<void> _guardarRegistro() async {
     if (_isSaving) return;
@@ -288,6 +227,15 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
   Widget build(BuildContext context) {
     final formState = ref.watch(registroFormNotifierProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    ref.listen<RegistroFormState>(registroFormNotifierProvider, (previous, next) {
+      if (previous?.descuentoAlmuerzoMinutos != next.descuentoAlmuerzoMinutos) {
+        final currentTextValue = int.tryParse(_descuentoController.text.trim()) ?? 0;
+        if (currentTextValue != next.descuentoAlmuerzoMinutos) {
+          _descuentoController.text = next.descuentoAlmuerzoMinutos.toString();
+        }
+      }
+    });
 
     final diaKey = DateFormatters.getDiaSemanaKey(formState.fecha);
     final diaNombre = DateFormatters.getDiaNombre(diaKey);
@@ -653,120 +601,69 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: Text(
-                              'Sin descanso (0m)',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: formState.descuentoAlmuerzoMinutos == 0
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: formState.descuentoAlmuerzoMinutos == 0
-                                    ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
-                              ),
-                            ),
-                            selected: formState.descuentoAlmuerzoMinutos == 0,
-                            selectedColor: const Color(0xFF4F46E5),
-                            onSelected: (_) {
-                              ref
-                                  .read(registroFormNotifierProvider.notifier)
-                                  .setDescuentoAlmuerzoMinutos(0);
-                            },
-                          ),
-                          ChoiceChip(
-                            label: Text(
-                              '30 min',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: formState.descuentoAlmuerzoMinutos == 30
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: formState.descuentoAlmuerzoMinutos == 30
-                                    ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
-                              ),
-                            ),
-                            selected: formState.descuentoAlmuerzoMinutos == 30,
-                            selectedColor: const Color(0xFF4F46E5),
-                            onSelected: (_) {
-                              ref
-                                  .read(registroFormNotifierProvider.notifier)
-                                  .setDescuentoAlmuerzoMinutos(30);
-                            },
-                          ),
-                          ChoiceChip(
-                            label: Text(
-                              '45 min',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: formState.descuentoAlmuerzoMinutos == 45
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: formState.descuentoAlmuerzoMinutos == 45
-                                    ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
-                              ),
-                            ),
-                            selected: formState.descuentoAlmuerzoMinutos == 45,
-                            selectedColor: const Color(0xFF4F46E5),
-                            onSelected: (_) {
-                              ref
-                                  .read(registroFormNotifierProvider.notifier)
-                                  .setDescuentoAlmuerzoMinutos(45);
-                            },
-                          ),
-                          ChoiceChip(
-                            label: Text(
-                              '1 hora (60m)',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: formState.descuentoAlmuerzoMinutos == 60
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: formState.descuentoAlmuerzoMinutos == 60
-                                    ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
-                              ),
-                            ),
-                            selected: formState.descuentoAlmuerzoMinutos == 60,
-                            selectedColor: const Color(0xFF4F46E5),
-                            onSelected: (_) {
-                              ref
-                                  .read(registroFormNotifierProvider.notifier)
-                                  .setDescuentoAlmuerzoMinutos(60);
-                            },
-                          ),
-                          ActionChip(
-                            avatar: Icon(
-                              Icons.edit_calendar_rounded,
-                              size: 16,
-                              color: ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
-                                  ? Colors.white
-                                  : const Color(0xFF4F46E5),
-                            ),
-                            backgroundColor: ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
-                                ? const Color(0xFF4F46E5)
-                                : null,
-                            label: Text(
-                              ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
-                                  ? 'Personalizado (${formState.descuentoAlmuerzoMinutos}m)'
-                                  : 'Otro...',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
-                                    ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
-                              ),
-                            ),
-                            onPressed: () => _dialogoDescansoPersonalizado(context),
-                          ),
+                      TextFormField(
+                        controller: _descuentoController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(3),
                         ],
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Ej. 45 (o 0 si no hubo descanso)',
+                          prefixIcon: const Icon(
+                            Icons.free_breakfast_outlined,
+                            size: 20,
+                            color: Color(0xFFF59E0B),
+                          ),
+                          suffixText: 'minutos',
+                          suffixStyle: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFF59E0B),
+                            fontSize: 13,
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF4F46E5),
+                              width: 1.6,
+                            ),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val.trim()) ?? 0;
+                          ref
+                              .read(registroFormNotifierProvider.notifier)
+                              .setDescuentoAlmuerzoMinutos(parsed >= 0 ? parsed : 0);
+                        },
                       ),
                     ],
                   ),

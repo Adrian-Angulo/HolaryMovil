@@ -21,7 +21,7 @@ class HorarioDia {
   String get horaEntrada => horaInicio;
   String get horaSalida => horaFin;
   int get minutosColacion => refrigerioMinutos;
-  double get horasEfectivas => TimeCalculator.calcularHorasNetas(horaInicio, horaFin);
+  double get horasEfectivas => TimeCalculator.calcularHorasNetas(horaInicio, horaFin, refrigerioMinutos);
 
   HorarioDia copyWith({
     String? diaSemana,

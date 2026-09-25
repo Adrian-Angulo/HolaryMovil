@@ -6,6 +6,7 @@ import '../molecules/password_strength_indicator.dart';
 class RegisterFormOrganism extends StatefulWidget {
   final bool isLoading;
   final Future<void> Function({
+    required String nombre,
     required String email,
     required String password,
   }) onRegister;
@@ -24,6 +25,7 @@ class RegisterFormOrganism extends StatefulWidget {
 
 class _RegisterFormOrganismState extends State<RegisterFormOrganism> {
   final _formKey = GlobalKey<FormState>();
+  final _nombreController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -32,6 +34,7 @@ class _RegisterFormOrganismState extends State<RegisterFormOrganism> {
 
   @override
   void dispose() {
+    _nombreController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -41,6 +44,7 @@ class _RegisterFormOrganismState extends State<RegisterFormOrganism> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       widget.onRegister(
+        nombre: _nombreController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
@@ -56,6 +60,39 @@ class _RegisterFormOrganismState extends State<RegisterFormOrganism> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Nombre Completo',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: widget.isDark ? Colors.white70 : const Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _nombreController,
+            keyboardType: TextInputType.name,
+            textCapitalization: TextCapitalization.words,
+            autofillHints: const [AutofillHints.name],
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              color: widget.isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+            decoration: _inputDecoration(
+              hintText: 'Ej. Juan Carlos Pérez',
+              prefixIcon: Icons.person_outline_rounded,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Ingresa tu nombre completo';
+              }
+              if (value.trim().length < 2) {
+                return 'El nombre debe tener al menos 2 caracteres';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
           Text(
             'Correo Institucional',
             style: GoogleFonts.plusJakartaSans(

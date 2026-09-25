@@ -131,6 +131,7 @@ class _RegistroPerfilScreenState extends ConsumerState<RegistroPerfilScreen> {
     String horaInicio = horario.horaInicio;
     String horaFin = horario.horaFin;
     String modalidad = horario.modalidad;
+    int refrigerioMinutos = horario.refrigerioMinutos;
 
     await showModalBottomSheet(
       context: context,
@@ -141,6 +142,12 @@ class _RegistroPerfilScreenState extends ConsumerState<RegistroPerfilScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final horasNetas = TimeCalculator.calcularHorasNetas(
+              horaInicio,
+              horaFin,
+              refrigerioMinutos,
+            );
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -148,144 +155,199 @@ class _RegistroPerfilScreenState extends ConsumerState<RegistroPerfilScreen> {
                 top: 20,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Configurar ${DateFormatters.getDiaNombre(diaKey)}',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Switch(
-                        value: activo,
-                        onChanged: (val) {
-                          setModalState(() => activo = val);
-                        },
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24),
-                  if (activo) ...[
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              'Hora Inicio',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            subtitle: Text(
-                              horaInicio,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            onTap: () async {
-                              final initial = TimeCalculator.parseTimeOfDay(
-                                horaInicio,
-                              );
-                              final picked = await showTimePicker(
-                                context: context,
-                                initialTime: initial,
-                              );
-                              if (picked != null) {
-                                setModalState(() {
-                                  horaInicio = TimeCalculator.formatTimeOfDay(
-                                    picked,
-                                  );
-                                });
-                              }
-                            },
+                        Text(
+                          'Configurar ${DateFormatters.getDiaNombre(diaKey)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        Expanded(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              'Hora Fin',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            subtitle: Text(
-                              horaFin,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            onTap: () async {
-                              final initial = TimeCalculator.parseTimeOfDay(
-                                horaFin,
-                              );
-                              final picked = await showTimePicker(
-                                context: context,
-                                initialTime: initial,
-                              );
-                              if (picked != null) {
-                                setModalState(() {
-                                  horaFin = TimeCalculator.formatTimeOfDay(
-                                    picked,
-                                  );
-                                });
-                              }
-                            },
-                          ),
+                        Switch(
+                          value: activo,
+                          activeTrackColor: const Color(0xFF10B981),
+                          onChanged: (val) {
+                            setModalState(() => activo = val);
+                          },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    const Text('Modalidad', style: TextStyle(fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      children: AppConstants.modalidades.map((mod) {
-                        return ChoiceChip(
-                          label: Text(mod),
-                          selected: modalidad == mod,
-                          onSelected: (_) =>
-                              setModalState(() => modalidad = mod),
-                        );
-                      }).toList(),
-                    ),
-                  ] else ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: Text(
-                          'Día no laboral / descanso',
-                          style: GoogleFonts.inter(color: Colors.grey),
+                    const Divider(height: 24),
+                    if (activo) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text(
+                                'Hora Inicio',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              subtitle: Text(
+                                horaInicio,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onTap: () async {
+                                final initial = TimeCalculator.parseTimeOfDay(
+                                  horaInicio,
+                                );
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: initial,
+                                );
+                                if (picked != null) {
+                                  setModalState(() {
+                                    horaInicio = TimeCalculator.formatTimeOfDay(
+                                      picked,
+                                    );
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text(
+                                'Hora Fin',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              subtitle: Text(
+                                horaFin,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onTap: () async {
+                                final initial = TimeCalculator.parseTimeOfDay(
+                                  horaFin,
+                                );
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: initial,
+                                );
+                                if (picked != null) {
+                                  setModalState(() {
+                                    horaFin = TimeCalculator.formatTimeOfDay(
+                                      picked,
+                                    );
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Minutos de descanso / comida (no computables)',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        initialValue: refrigerioMinutos > 0 ? refrigerioMinutos.toString() : '0',
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'Ej. 45 (o 0 si no hay descanso)',
+                          prefixIcon: const Icon(Icons.free_breakfast_outlined, size: 20, color: Color(0xFFF59E0B)),
+                          suffixText: 'minutos',
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val.trim()) ?? 0;
+                          setModalState(() {
+                            refrigerioMinutos = parsed >= 0 ? parsed : 0;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Modalidad', style: TextStyle(fontSize: 12)),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        children: AppConstants.modalidades.map((mod) {
+                          return ChoiceChip(
+                            label: Text(mod),
+                            selected: modalidad == mod,
+                            onSelected: (_) =>
+                                setModalState(() => modalidad = mod),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF10B981)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Horas efectivas netas: ${horasNetas.toStringAsFixed(1)} hrs',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                          child: Text(
+                            'Día no laboral / descanso',
+                            style: GoogleFonts.inter(color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _horarioSemanal[diaKey] = horario.copyWith(
+                              activo: activo,
+                              horaInicio: horaInicio,
+                              horaFin: horaFin,
+                              refrigerioMinutos: refrigerioMinutos,
+                              modalidad: modalidad,
+                            );
+                          });
+                          Navigator.of(ctx).pop();
+                        },
+                        child: const Text('Aceptar'),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _horarioSemanal[diaKey] = horario.copyWith(
-                            activo: activo,
-                            horaInicio: horaInicio,
-                            horaFin: horaFin,
-                            refrigerioMinutos: 0,
-                            modalidad: modalidad,
-                          );
-                        });
-                        Navigator.of(ctx).pop();
-                      },
-                      child: const Text('Aceptar'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -624,7 +686,7 @@ class _RegistroPerfilScreenState extends ConsumerState<RegistroPerfilScreen> {
                                   const Spacer(),
                                   Text(
                                     h.activo
-                                        ? '${h.horaInicio} - ${h.horaFin}'
+                                        ? '${h.horaInicio} - ${h.horaFin}${h.refrigerioMinutos > 0 ? ' (${h.refrigerioMinutos}m com)' : ''}'
                                         : 'No laboral',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,

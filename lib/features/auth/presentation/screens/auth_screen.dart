@@ -54,11 +54,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   }
 
   Future<void> _handleRegister({
+    required String nombre,
     required String email,
     required String password,
   }) async {
     final authNotifier = ref.read(authNotifierProvider.notifier);
     final success = await authNotifier.register(
+      nombre: nombre,
       email: email,
       password: password,
     );
