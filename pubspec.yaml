@@ -23,6 +23,8 @@ dependencies:
   share_plus: ^9.0.0
   path_provider: ^2.1.2
   cupertino_icons: ^1.0.8
+  pdf: ^3.10.8
+  tutorial_coach_mark: ^1.2.11
 
 dev_dependencies:
   flutter_test:

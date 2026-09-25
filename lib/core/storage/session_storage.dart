@@ -52,6 +52,24 @@ class SessionStorage {
     return token != null && token.isNotEmpty;
   }
 
+  String? getCachedPerfilJson() => _prefs.getString(AppConstants.cachedPerfilKey);
+
+  Future<void> saveCachedPerfilJson(String jsonStr) async {
+    await _prefs.setString(AppConstants.cachedPerfilKey, jsonStr);
+  }
+
+  String? getCachedRegistrosJson() => _prefs.getString(AppConstants.cachedRegistrosKey);
+
+  Future<void> saveCachedRegistrosJson(String jsonStr) async {
+    await _prefs.setString(AppConstants.cachedRegistrosKey, jsonStr);
+  }
+
+  String? getSyncQueueJson() => _prefs.getString(AppConstants.syncQueueKey);
+
+  Future<void> saveSyncQueueJson(String jsonStr) async {
+    await _prefs.setString(AppConstants.syncQueueKey, jsonStr);
+  }
+
   Future<void> clearSession() async {
     await _prefs.remove(AppConstants.tokenKey);
     await _prefs.remove(AppConstants.refreshTokenKey);
@@ -59,6 +77,9 @@ class SessionStorage {
     await _prefs.remove(AppConstants.userEmailKey);
     await _prefs.remove(AppConstants.userNameKey);
     await _prefs.remove(AppConstants.perfilCompletadoKey);
+    await _prefs.remove(AppConstants.cachedPerfilKey);
+    await _prefs.remove(AppConstants.cachedRegistrosKey);
+    await _prefs.remove(AppConstants.syncQueueKey);
   }
 
   String getCustomBaseUrl() => AppConstants.apiBaseUrl;

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:practi_horas_app/core/constants/app_constants.dart';
+import 'package:practi_horas_app/core/di/dependency_injection.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
 import 'package:practi_horas_app/core/utils/time_calculator.dart';
 import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
@@ -108,6 +109,75 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     }
   }
 
+  Future<void> _dialogoDescansoPersonalizado(BuildContext context) async {
+    final formState = ref.read(registroFormNotifierProvider);
+    final currentMin = formState.descuentoAlmuerzoMinutos;
+    final controller = TextEditingController(
+      text: currentMin > 0 ? currentMin.toString() : '',
+    );
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.restaurant_rounded, color: Color(0xFFF59E0B)),
+            const SizedBox(width: 8),
+            Text(
+              'Tiempo de Descanso',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Indica los minutos dedicados a almuerzo o refrigerio para descontarlos de las horas de práctica:',
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Minutos (0 a 180)',
+                suffixText: 'min',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final val = int.tryParse(controller.text.trim()) ?? 0;
+              Navigator.of(ctx).pop(val.clamp(0, 180));
+            },
+            child: const Text('Aplicar'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      ref
+          .read(registroFormNotifierProvider.notifier)
+          .setDescuentoAlmuerzoMinutos(result);
+    }
+  }
+
   Future<void> _guardarRegistro() async {
     if (_isSaving) return;
 
@@ -138,11 +208,31 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
       return;
     }
 
+    final entity = formNotifier.toEntity();
+
+    // Validación de solapamiento de horarios (Regla de negocio)
+    final listaRegistros = ref.read(registrosNotifierProvider).value ?? [];
+    final conflicto = ref.read(validarSolapamientoUseCaseProvider).execute(
+      registro: entity,
+      registrosExistentes: listaRegistros,
+    );
+
+    if (conflicto != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '⚠️ Conflicto de horario: Ya tienes una jornada registrada de ${conflicto.horaInicio} a ${conflicto.horaFin} en esta fecha.',
+          ),
+          backgroundColor: Colors.orange.shade900,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      final entity = formNotifier.toEntity();
-
       if (formState.isEditing) {
         final failure = await ref.read(registrosNotifierProvider.notifier).actualizarRegistro(entity);
         if (mounted) {
@@ -520,6 +610,169 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              FadeInUp(
+                duration: const Duration(milliseconds: 450),
+                delay: const Duration(milliseconds: 175),
+                child: CustomCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.restaurant_rounded,
+                                size: 18,
+                                color: Color(0xFFF59E0B),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Descanso / Hora de Comida',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (formState.descuentoAlmuerzoMinutos > 0)
+                            Text(
+                              '-${formState.descuentoAlmuerzoMinutos} min',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFF59E0B),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: Text(
+                              'Sin descanso (0m)',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: formState.descuentoAlmuerzoMinutos == 0
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: formState.descuentoAlmuerzoMinutos == 0
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                            selected: formState.descuentoAlmuerzoMinutos == 0,
+                            selectedColor: const Color(0xFF4F46E5),
+                            onSelected: (_) {
+                              ref
+                                  .read(registroFormNotifierProvider.notifier)
+                                  .setDescuentoAlmuerzoMinutos(0);
+                            },
+                          ),
+                          ChoiceChip(
+                            label: Text(
+                              '30 min',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: formState.descuentoAlmuerzoMinutos == 30
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: formState.descuentoAlmuerzoMinutos == 30
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                            selected: formState.descuentoAlmuerzoMinutos == 30,
+                            selectedColor: const Color(0xFF4F46E5),
+                            onSelected: (_) {
+                              ref
+                                  .read(registroFormNotifierProvider.notifier)
+                                  .setDescuentoAlmuerzoMinutos(30);
+                            },
+                          ),
+                          ChoiceChip(
+                            label: Text(
+                              '45 min',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: formState.descuentoAlmuerzoMinutos == 45
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: formState.descuentoAlmuerzoMinutos == 45
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                            selected: formState.descuentoAlmuerzoMinutos == 45,
+                            selectedColor: const Color(0xFF4F46E5),
+                            onSelected: (_) {
+                              ref
+                                  .read(registroFormNotifierProvider.notifier)
+                                  .setDescuentoAlmuerzoMinutos(45);
+                            },
+                          ),
+                          ChoiceChip(
+                            label: Text(
+                              '1 hora (60m)',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: formState.descuentoAlmuerzoMinutos == 60
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: formState.descuentoAlmuerzoMinutos == 60
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                            selected: formState.descuentoAlmuerzoMinutos == 60,
+                            selectedColor: const Color(0xFF4F46E5),
+                            onSelected: (_) {
+                              ref
+                                  .read(registroFormNotifierProvider.notifier)
+                                  .setDescuentoAlmuerzoMinutos(60);
+                            },
+                          ),
+                          ActionChip(
+                            avatar: Icon(
+                              Icons.edit_calendar_rounded,
+                              size: 16,
+                              color: ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
+                                  ? Colors.white
+                                  : const Color(0xFF4F46E5),
+                            ),
+                            backgroundColor: ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
+                                ? const Color(0xFF4F46E5)
+                                : null,
+                            label: Text(
+                              ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
+                                  ? 'Personalizado (${formState.descuentoAlmuerzoMinutos}m)'
+                                  : 'Otro...',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: ![0, 30, 45, 60].contains(formState.descuentoAlmuerzoMinutos)
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                            onPressed: () => _dialogoDescansoPersonalizado(context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               ZoomIn(
                 duration: const Duration(milliseconds: 400),
                 delay: const Duration(milliseconds: 200),
@@ -527,6 +780,7 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                   horaInicio: formState.horaInicio,
                   horaFin: formState.horaFin,
                   horasComputables: formState.horasComputables,
+                  descuentoMinutos: formState.descuentoAlmuerzoMinutos,
                 ),
               ),
               const SizedBox(height: 16),

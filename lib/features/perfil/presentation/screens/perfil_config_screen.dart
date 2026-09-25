@@ -8,6 +8,7 @@ import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
 import 'package:practi_horas_app/core/shared_atomic/molecules/menu_action_tile.dart';
 import 'package:practi_horas_app/core/utils/csv_exporter.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
+import 'package:practi_horas_app/core/utils/pdf_exporter.dart';
 import 'package:practi_horas_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:practi_horas_app/features/registros/presentation/providers/registro_provider.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/horario_dia.dart';
@@ -132,11 +133,14 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
     );
   }
 
-  Future<void> _exportarCsvDesdePerfil() async {
+  Future<void> _exportarReportesDesdePerfil() async {
     final todosLosRegistros = ref.read(registrosNotifierProvider).value ?? [];
-    final perfil = ref.read(perfilNotifierProvider).value;
-    final horasPrevias = perfil?.horasInicialesPrevias ?? 0.0;
-    final nombre = perfil?.nombre ?? 'Practicante';
+    final perfil = ref.read(perfilNotifierProvider).value ??
+        Perfil.defaultPerfil().copyWith(
+          nombre: ref.read(sessionStorageProvider).getUserName() ?? 'Practicante',
+        );
+    final userEmail = ref.read(sessionStorageProvider).getUserEmail();
+    final horasPrevias = perfil.horasInicialesPrevias;
 
     if (todosLosRegistros.isEmpty && horasPrevias <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -155,10 +159,122 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
       return;
     }
 
-    await CsvExporter.exportarYCompartir(
-      todosLosRegistros,
-      nombreEstudiante: nombre,
-      horasPrevias: horasPrevias,
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.file_download_rounded,
+                      color: Color(0xFF4F46E5),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Exportar Reporte Oficial',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Elige el formato para presentar o archivar',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Opción PDF con firmas
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await PdfExporter.exportarYCompartirPdf(
+                      registros: todosLosRegistros,
+                      perfil: perfil,
+                      email: userEmail,
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                  label: const Text('Ficha Oficial en PDF (Con Firmas)'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Opción CSV
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await CsvExporter.exportarYCompartirCsv(
+                      registros: todosLosRegistros,
+                      horasInicialesPrevias: horasPrevias,
+                      nombrePracticante: perfil.nombre,
+                    );
+                  },
+                  icon: const Icon(Icons.table_chart_rounded, size: 18),
+                  label: const Text('Reporte CSV / Excel (Datos crudos)'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Copiar Portapapeles
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await CsvExporter.copiarCsvAlPortapapeles(
+                      registros: todosLosRegistros,
+                      horasInicialesPrevias: horasPrevias,
+                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('📋 CSV copiado al portapapeles'),
+                          backgroundColor: Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text('Copiar formato CSV'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -218,6 +334,31 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
         ? const Color(0xFF020617)
         : const Color(0xFFEEF2FF);
 
+    final storage = ref.read(sessionStorageProvider);
+    final fallbackNombre = storage.getUserName() ?? 'Practicante';
+    final perfil = perfilAsync.value ??
+        Perfil.defaultPerfil().copyWith(
+          nombre: fallbackNombre,
+          perfilCompletado: storage.isPerfilCompletado(),
+        );
+
+    if (perfilAsync.isLoading && perfilAsync.value == null) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [bgGradientStart, bgGradientEnd],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(color: Color(0xFF4F46E5)),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -228,44 +369,50 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
           ),
         ),
         child: SafeArea(
-          child: perfilAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4F46E5)),
-            ),
-            error: (err, _) => Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.error_outline_rounded,
-                    size: 48,
-                    color: Color(0xFFEF4444),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'Error al cargar el perfil: $err',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: isDark ? Colors.white70 : Colors.black87,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (perfilAsync.hasError) ...[
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () =>
-                        ref.read(perfilNotifierProvider.notifier).loadPerfil(),
-                    child: const Text('Reintentar'),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.wifi_off_rounded,
+                          color: Color(0xFFF59E0B),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Modo sin conexión. Mostrando datos guardados localmente.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? const Color(0xFFFDE68A)
+                                  : const Color(0xFFB45309),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ),
-            data: (perfil) => SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
                   // 1. Cabecera del Perfil
                   PerfilHeaderOrganism(
                     perfil: perfil,
@@ -392,12 +539,12 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
                         ),
                         _buildDivider(isDark),
                         MenuActionTile(
-                          icon: Icons.table_chart_rounded,
+                          icon: Icons.file_download_rounded,
                           iconColor: const Color(0xFF059669),
-                          title: 'Exportar Registro a CSV / Excel',
+                          title: 'Exportar Reportes (PDF / Excel)',
                           subtitle:
-                              'Generar reporte descargable de todas tus jornadas',
-                          onTap: _exportarCsvDesdePerfil,
+                              'Generar Ficha Oficial con firmas o archivo CSV',
+                          onTap: _exportarReportesDesdePerfil,
                           isDark: isDark,
                         ),
                         _buildDivider(isDark),
@@ -419,8 +566,7 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDivider(bool isDark) {

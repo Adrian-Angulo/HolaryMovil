@@ -20,6 +20,9 @@ class AppConstants {
   static const String userEmailKey = 'auth_user_email';
   static const String userNameKey = 'auth_user_name';
   static const String perfilCompletadoKey = 'auth_perfil_completado';
+  static const String cachedPerfilKey = 'cache_perfil_data';
+  static const String cachedRegistrosKey = 'cache_registros_data';
+  static const String syncQueueKey = 'offline_sync_queue';
 
   // Días de la semana normalizados
   static const List<String> diasSemanaKeys = [

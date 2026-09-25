@@ -36,6 +36,7 @@ import '../../features/registros/domain/usecases/add_registro_usecase.dart';
 import '../../features/registros/domain/usecases/delete_registro_usecase.dart';
 import '../../features/registros/domain/usecases/get_registros_usecase.dart';
 import '../../features/registros/domain/usecases/update_registro_usecase.dart';
+import '../../features/registros/domain/usecases/validar_solapamiento_usecase.dart';
 
 // -------------------------------------------------------------
 // Core Storage & Network Providers
@@ -79,11 +80,17 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
 });
 
 final perfilRepositoryProvider = Provider<IPerfilRepository>((ref) {
-  return PerfilRepositoryImpl(ref.watch(perfilRemoteDataSourceProvider));
+  return PerfilRepositoryImpl(
+    ref.watch(perfilRemoteDataSourceProvider),
+    ref.watch(sessionStorageProvider),
+  );
 });
 
 final registroRepositoryProvider = Provider<IRegistroRepository>((ref) {
-  return RegistroRepositoryImpl(ref.watch(registroRemoteDataSourceProvider));
+  return RegistroRepositoryImpl(
+    ref.watch(registroRemoteDataSourceProvider),
+    ref.watch(sessionStorageProvider),
+  );
 });
 
 final metricasRepositoryProvider = Provider<IMetricasRepository>((ref) {
@@ -142,6 +149,10 @@ final updateRegistroUseCaseProvider = Provider<UpdateRegistroUseCase>((ref) {
 
 final deleteRegistroUseCaseProvider = Provider<DeleteRegistroUseCase>((ref) {
   return DeleteRegistroUseCase(ref.watch(registroRepositoryProvider));
+});
+
+final validarSolapamientoUseCaseProvider = Provider<ValidarSolapamientoUseCase>((ref) {
+  return ValidarSolapamientoUseCase();
 });
 
 // Dashboard Use Cases

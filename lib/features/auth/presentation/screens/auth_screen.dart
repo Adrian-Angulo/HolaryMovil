@@ -12,7 +12,6 @@ import 'package:practi_horas_app/features/auth/presentation/providers/auth_provi
 import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/forgot_password_modal.dart';
 import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/login_form_organism.dart';
 import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/register_form_organism.dart';
-import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/reset_password_modal.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -90,23 +89,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       context: context,
       onRequestReset: (email) =>
           ref.read(authNotifierProvider.notifier).requestPasswordReset(email),
-      onTokenReceived: (email, devToken) {
-        _openResetPasswordModal(devToken);
-      },
-    );
-  }
-
-  void _openResetPasswordModal(String? devToken) {
-    ResetPasswordModal.show(
-      context: context,
-      initialToken: devToken,
-      onResetPassword: (token, newPassword) => ref
-          .read(authNotifierProvider.notifier)
-          .resetPassword(token: token, newPassword: newPassword),
-      onSuccess: () {
-        _showSuccessSnackBar(
-            '¡Contraseña actualizada exitosamente! Ya puedes iniciar sesión.');
-      },
     );
   }
 
@@ -184,6 +166,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             ),
           ),
         );
+      }
+      if (next.successMessage != null &&
+          next.successMessage != previous?.successMessage) {
+        _showSuccessSnackBar(next.successMessage!);
       }
     });
 

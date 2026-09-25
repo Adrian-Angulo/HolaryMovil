@@ -76,4 +76,32 @@ class TimeCalculator {
     }
     return '${horas}h ${minutos}m';
   }
+
+  /// Verifica si dos rangos de horas ("HH:mm") en el mismo día se solapan.
+  static bool haySolapamiento(
+    String inicioA,
+    String finA,
+    String inicioB,
+    String finB,
+  ) {
+    try {
+      final pIniA = inicioA.split(':').map(int.parse).toList();
+      final pFinA = finA.split(':').map(int.parse).toList();
+      final pIniB = inicioB.split(':').map(int.parse).toList();
+      final pFinB = finB.split(':').map(int.parse).toList();
+
+      if (pIniA.length != 2 || pFinA.length != 2 || pIniB.length != 2 || pFinB.length != 2) {
+        return false;
+      }
+
+      final minIniA = pIniA[0] * 60 + pIniA[1];
+      final minFinA = pFinA[0] * 60 + pFinA[1];
+      final minIniB = pIniB[0] * 60 + pIniB[1];
+      final minFinB = pFinB[0] * 60 + pFinB[1];
+
+      return (minIniA < minFinB) && (minFinA > minIniB);
+    } catch (_) {
+      return false;
+    }
+  }
 }

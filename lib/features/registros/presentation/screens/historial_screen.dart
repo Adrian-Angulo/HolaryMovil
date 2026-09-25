@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:practi_horas_app/core/constants/app_constants.dart';
+import 'package:practi_horas_app/core/di/dependency_injection.dart';
 import 'package:practi_horas_app/core/utils/csv_exporter.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
+import 'package:practi_horas_app/core/utils/pdf_exporter.dart';
 import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
+import 'package:practi_horas_app/features/perfil/domain/entities/perfil.dart';
 import 'package:practi_horas_app/features/perfil/presentation/providers/perfil_provider.dart';
 import 'package:practi_horas_app/features/registros/domain/entities/registro_hora.dart';
 import 'package:practi_horas_app/features/registros/presentation/providers/registro_form_provider.dart';
@@ -17,11 +20,14 @@ class HistorialScreen extends ConsumerWidget {
 
   const HistorialScreen({super.key, this.onEditRegistro});
 
-  Future<void> _exportarCsv(BuildContext context, WidgetRef ref) async {
+  Future<void> _mostrarOpcionesExportacion(BuildContext context, WidgetRef ref) async {
     final todosLosRegistros = ref.read(registrosNotifierProvider).value ?? [];
-    final perfil = ref.read(perfilNotifierProvider).value;
-    final horasPrevias = perfil?.horasInicialesPrevias ?? 0.0;
-    final nombre = perfil?.nombre ?? 'Practicante';
+    final perfil = ref.read(perfilNotifierProvider).value ??
+        Perfil.defaultPerfil().copyWith(
+          nombre: ref.read(sessionStorageProvider).getUserName() ?? 'Practicante',
+        );
+    final userEmail = ref.read(sessionStorageProvider).getUserEmail();
+    final horasPrevias = perfil.horasInicialesPrevias;
 
     if (todosLosRegistros.isEmpty && horasPrevias == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,12 +56,12 @@ class HistorialScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
-                      Icons.table_chart_rounded,
-                      color: Color(0xFF10B981),
+                      Icons.file_download_rounded,
+                      color: Color(0xFF4F46E5),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -63,14 +69,14 @@ class HistorialScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Exportar Reporte CSV',
+                        'Exportar Reporte Oficial',
                         style: GoogleFonts.inter(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
-                        'Compatible con Excel y Google Sheets',
+                        'Elige el formato para compartir o presentar',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.grey,
@@ -80,7 +86,7 @@ class HistorialScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -88,32 +94,56 @@ class HistorialScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'Formato: Fecha • Entrada • Salida • Actividades • Horas • Sumatoria (∑)\nTotal a exportar: ${todosLosRegistros.length} registros (${todosLosRegistros.fold<double>(horasPrevias, (prev, r) => prev + r.horasComputables).toStringAsFixed(2)} hrs totales)',
-                  style: GoogleFonts.inter(fontSize: 11, height: 1.4),
+                  'Total a certificar: ${todosLosRegistros.length} jornadas (${todosLosRegistros.fold<double>(horasPrevias, (prev, r) => prev + r.horasComputables).toStringAsFixed(2)} hrs totales)',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              // Opción PDF con firmas
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await PdfExporter.exportarYCompartirPdf(
+                      registros: todosLosRegistros,
+                      perfil: perfil,
+                      email: userEmail,
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                  label: const Text('Ficha Oficial en PDF (Con Firmas)'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Opción CSV
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton.icon(
                   onPressed: () async {
                     Navigator.of(ctx).pop();
                     await CsvExporter.exportarYCompartirCsv(
                       registros: todosLosRegistros,
                       horasInicialesPrevias: horasPrevias,
-                      nombrePracticante: nombre,
+                      nombrePracticante: perfil.nombre,
                     );
                   },
-                  icon: const Icon(Icons.share_rounded, size: 18),
-                  label: const Text('Compartir / Guardar Archivo CSV'),
+                  icon: const Icon(Icons.table_chart_rounded, size: 18),
+                  label: const Text('Reporte CSV / Excel (Datos crudos)'),
                 ),
               ),
               const SizedBox(height: 10),
+              // Copiar Portapapeles
               SizedBox(
                 width: double.infinity,
-                height: 44,
-                child: OutlinedButton.icon(
+                height: 40,
+                child: TextButton.icon(
                   onPressed: () async {
                     Navigator.of(ctx).pop();
                     await CsvExporter.copiarCsvAlPortapapeles(
@@ -130,7 +160,7 @@ class HistorialScreen extends ConsumerWidget {
                     }
                   },
                   icon: const Icon(Icons.copy_rounded, size: 16),
-                  label: const Text('Copiar Texto CSV'),
+                  label: const Text('Copiar formato CSV'),
                 ),
               ),
             ],
@@ -217,8 +247,8 @@ class HistorialScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
-            tooltip: 'Exportar Reporte CSV',
-            onPressed: () => _exportarCsv(context, ref),
+            tooltip: 'Exportar Reporte (PDF / CSV)',
+            onPressed: () => _mostrarOpcionesExportacion(context, ref),
           ),
         ],
       ),
@@ -452,6 +482,37 @@ class HistorialScreen extends ConsumerWidget {
                           : const Color(0xFF64748B),
                     ),
                   ),
+                  if (reg.descuentoAlmuerzoMinutos > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.restaurant_rounded,
+                            size: 11,
+                            color: Color(0xFFF59E0B),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '-${reg.descuentoAlmuerzoMinutos}m',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
               if (reg.actividades.isNotEmpty) ...[
@@ -561,7 +622,9 @@ class HistorialScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   _buildDetailChip(
                     context,
@@ -569,20 +632,25 @@ class HistorialScreen extends ConsumerWidget {
                     label: 'Entrada',
                     value: reg.horaInicio,
                   ),
-                  const SizedBox(width: 8),
                   _buildDetailChip(
                     context,
                     icon: Icons.logout_rounded,
                     label: 'Salida',
                     value: reg.horaFin,
                   ),
-                  const SizedBox(width: 8),
                   _buildDetailChip(
                     context,
                     icon: Icons.work_outline_rounded,
                     label: 'Modalidad',
                     value: reg.modalidad,
                   ),
+                  if (reg.descuentoAlmuerzoMinutos > 0)
+                    _buildDetailChip(
+                      context,
+                      icon: Icons.restaurant_rounded,
+                      label: 'Descanso',
+                      value: '${reg.descuentoAlmuerzoMinutos} min',
+                    ),
                 ],
               ),
               const SizedBox(height: 16),

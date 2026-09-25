@@ -83,6 +83,7 @@ class RegistroFormNotifier extends StateNotifier<RegistroFormState> {
     String fin = '13:00';
     String mod = 'Presencial';
     bool activo = true;
+    int descMinutos = 0;
 
     if (perfil != null && perfil.horarioSemanal.containsKey(diaKey)) {
       final horarioDia = perfil.horarioSemanal[diaKey]!;
@@ -90,16 +91,21 @@ class RegistroFormNotifier extends StateNotifier<RegistroFormState> {
       fin = horarioDia.horaFin;
       mod = horarioDia.modalidad;
       activo = horarioDia.activo;
+      descMinutos = horarioDia.refrigerioMinutos;
     }
 
-    final computables = TimeCalculator.calcularHorasNetas(inicio, fin);
+    final computables = TimeCalculator.calcularHorasNetas(
+      inicio,
+      fin,
+      descMinutos,
+    );
 
     state = RegistroFormState(
       id: const Uuid().v4(),
       fecha: fecha,
       horaInicio: inicio,
       horaFin: fin,
-      descuentoAlmuerzoMinutos: 0,
+      descuentoAlmuerzoMinutos: descMinutos,
       modalidad: mod,
       actividades: '',
       horasComputables: computables,
@@ -114,7 +120,7 @@ class RegistroFormNotifier extends StateNotifier<RegistroFormState> {
       fecha: registro.fecha,
       horaInicio: registro.horaInicio,
       horaFin: registro.horaFin,
-      descuentoAlmuerzoMinutos: 0,
+      descuentoAlmuerzoMinutos: registro.descuentoAlmuerzoMinutos,
       modalidad: registro.modalidad,
       actividades: registro.actividades,
       horasComputables: registro.horasComputables,
@@ -135,6 +141,7 @@ class RegistroFormNotifier extends StateNotifier<RegistroFormState> {
     final computables = TimeCalculator.calcularHorasNetas(
       inicio,
       state.horaFin,
+      state.descuentoAlmuerzoMinutos,
     );
     state = state.copyWith(
       horaInicio: inicio,
@@ -146,9 +153,22 @@ class RegistroFormNotifier extends StateNotifier<RegistroFormState> {
     final computables = TimeCalculator.calcularHorasNetas(
       state.horaInicio,
       fin,
+      state.descuentoAlmuerzoMinutos,
     );
     state = state.copyWith(
       horaFin: fin,
+      horasComputables: computables,
+    );
+  }
+
+  void setDescuentoAlmuerzoMinutos(int minutos) {
+    final computables = TimeCalculator.calcularHorasNetas(
+      state.horaInicio,
+      state.horaFin,
+      minutos,
+    );
+    state = state.copyWith(
+      descuentoAlmuerzoMinutos: minutos,
       horasComputables: computables,
     );
   }
@@ -167,7 +187,7 @@ class RegistroFormNotifier extends StateNotifier<RegistroFormState> {
       fecha: state.fecha,
       horaInicio: state.horaInicio,
       horaFin: state.horaFin,
-      descuentoAlmuerzoMinutos: 0,
+      descuentoAlmuerzoMinutos: state.descuentoAlmuerzoMinutos,
       horasComputables: state.horasComputables,
       modalidad: state.modalidad,
       actividades: state.actividades.trim(),
