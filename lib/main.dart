@@ -6,6 +6,7 @@ import 'core/constants/app_constants.dart';
 import 'core/di/dependency_injection.dart';
 import 'core/storage/session_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/app_navigator.dart';
 import 'features/perfil/presentation/providers/theme_provider.dart';
 import 'features/shell/presentation/screens/splash_screen.dart';
 
@@ -36,6 +37,7 @@ class PractiHorasApp extends ConsumerWidget {
     final themeMode = ref.watch(themeNotifierProvider);
 
     return MaterialApp(
+      navigatorKey: AppNavigator.navigatorKey,
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

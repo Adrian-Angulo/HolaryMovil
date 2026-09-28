@@ -12,19 +12,25 @@ import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/perfil.dart';
 import 'package:practi_horas_app/features/perfil/presentation/providers/perfil_provider.dart';
 import 'package:practi_horas_app/features/registros/domain/entities/registro_hora.dart';
-import 'package:practi_horas_app/features/registros/presentation/providers/registro_form_provider.dart';
 import 'package:practi_horas_app/features/registros/presentation/providers/registro_provider.dart';
+
+import '../widgets/organisms/editar_registro_bottom_sheet.dart';
 
 class HistorialScreen extends ConsumerWidget {
   final Function(RegistroHora)? onEditRegistro;
 
   const HistorialScreen({super.key, this.onEditRegistro});
 
-  Future<void> _mostrarOpcionesExportacion(BuildContext context, WidgetRef ref) async {
+  Future<void> _mostrarOpcionesExportacion(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final todosLosRegistros = ref.read(registrosNotifierProvider).value ?? [];
-    final perfil = ref.read(perfilNotifierProvider).value ??
+    final perfil =
+        ref.read(perfilNotifierProvider).value ??
         Perfil.defaultPerfil().copyWith(
-          nombre: ref.read(sessionStorageProvider).getUserName() ?? 'Practicante',
+          nombre:
+              ref.read(sessionStorageProvider).getUserName() ?? 'Practicante',
         );
     final userEmail = ref.read(sessionStorageProvider).getUserEmail();
     final horasPrevias = perfil.horasInicialesPrevias;
@@ -95,7 +101,11 @@ class HistorialScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   'Total a certificar: ${todosLosRegistros.length} jornadas (${todosLosRegistros.fold<double>(horasPrevias, (prev, r) => prev + r.horasComputables).toStringAsFixed(2)} hrs totales)',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -622,37 +632,47 @@ class HistorialScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Column(
+                spacing: 10,
                 children: [
-                  _buildDetailChip(
-                    context,
-                    icon: Icons.login_rounded,
-                    label: 'Entrada',
-                    value: reg.horaInicio,
+                  Row(
+                    spacing: 5,
+                    children: [
+                      _buildDetailChip(
+                        context,
+                        icon: Icons.login_rounded,
+                        label: 'Entrada',
+                        value: reg.horaInicio,
+                      ),
+                      _buildDetailChip(
+                        context,
+                        icon: Icons.logout_rounded,
+                        label: 'Salida',
+                        value: reg.horaFin,
+                      ),
+                    ],
                   ),
-                  _buildDetailChip(
-                    context,
-                    icon: Icons.logout_rounded,
-                    label: 'Salida',
-                    value: reg.horaFin,
+
+                  Row(
+                    spacing: 5,
+                    children: [
+                      _buildDetailChip(
+                        context,
+                        icon: Icons.work_outline_rounded,
+                        label: 'Modalidad',
+                        value: reg.modalidad,
+                      ),
+                      _buildDetailChip(
+                        context,
+                        icon: Icons.restaurant_rounded,
+                        label: 'Descanso',
+                        value: '${reg.descuentoAlmuerzoMinutos} min',
+                      ),
+                    ],
                   ),
-                  _buildDetailChip(
-                    context,
-                    icon: Icons.work_outline_rounded,
-                    label: 'Modalidad',
-                    value: reg.modalidad,
-                  ),
-                  if (reg.descuentoAlmuerzoMinutos > 0)
-                    _buildDetailChip(
-                      context,
-                      icon: Icons.restaurant_rounded,
-                      label: 'Descanso',
-                      value: '${reg.descuentoAlmuerzoMinutos} min',
-                    ),
                 ],
               ),
+
               const SizedBox(height: 16),
               Text(
                 'Actividades Realizadas',
@@ -706,12 +726,12 @@ class HistorialScreen extends ConsumerWidget {
                       ),
                       icon: const Icon(Icons.edit_rounded, size: 20),
                       label: const Text('Editar'),
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.of(ctx).pop();
-                        ref
-                            .read(registroFormNotifierProvider.notifier)
-                            .cargarParaEdicion(reg);
-                        onEditRegistro?.call(reg);
+                        await EditarRegistroBottomSheet.show(
+                          context,
+                          registro: reg,
+                        );
                       },
                     ),
                   ),

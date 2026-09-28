@@ -43,7 +43,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         final bool estaCompletado = storage.isPerfilCompletado() || (perfil?.perfilCompletado ?? false);
         destino = estaCompletado ? const HomeNavigationScreen() : const RegistroPerfilScreen();
       } catch (_) {
-        destino = const HomeNavigationScreen();
+        if (!storage.hasSession()) {
+          destino = const AuthScreen();
+        } else {
+          final bool estaCompletado = storage.isPerfilCompletado();
+          destino = estaCompletado ? const HomeNavigationScreen() : const RegistroPerfilScreen();
+        }
       }
     } else {
       destino = const AuthScreen();

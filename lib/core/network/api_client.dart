@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/app_constants.dart';
@@ -11,9 +12,16 @@ import 'api_exceptions.dart';
 class ApiClient {
   final http.Client _httpClient;
   final SessionStorage sessionStorage;
+  final VoidCallback? onSessionExpired;
 
-  ApiClient({http.Client? httpClient, required this.sessionStorage})
-    : _httpClient = httpClient ?? http.Client();
+  bool _isRefreshing = false;
+  Completer<bool>? _refreshCompleter;
+
+  ApiClient({
+    http.Client? httpClient,
+    required this.sessionStorage,
+    this.onSessionExpired,
+  }) : _httpClient = httpClient ?? http.Client();
 
   String get baseUrl => AppConstants.apiBaseUrl;
 
@@ -55,6 +63,78 @@ class ApiClient {
     return Uri.parse(urlString);
   }
 
+  bool _shouldAttemptRefresh(String path) {
+    return !path.contains('/auth/login') &&
+        !path.contains('/auth/register') &&
+        !path.contains('/auth/refresh') &&
+        !path.contains('/auth/forgot-password') &&
+        !path.contains('/auth/reset-password');
+  }
+
+  Future<bool> _tryRefreshToken() async {
+    if (_isRefreshing) {
+      return _refreshCompleter?.future ?? Future.value(false);
+    }
+
+    _isRefreshing = true;
+    final completer = Completer<bool>();
+    _refreshCompleter = completer;
+
+    try {
+      final refreshToken = sessionStorage.getRefreshToken();
+      if (refreshToken == null || refreshToken.trim().isEmpty) {
+        await _handleSessionExpired();
+        completer.complete(false);
+        return false;
+      }
+
+      final uri = _buildUri(AppConstants.authRefreshEndpoint);
+      final response = await _httpClient
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'refreshToken': refreshToken.trim()}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = jsonDecode(response.body);
+        final token = body['token']?.toString() ??
+            body['data']?['token']?.toString() ??
+            body['accessToken']?.toString();
+        final newRefreshToken = body['refreshToken']?.toString() ??
+            body['data']?['refreshToken']?.toString();
+
+        if (token != null && token.isNotEmpty) {
+          await sessionStorage.saveToken(token);
+          if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+            await sessionStorage.saveRefreshToken(newRefreshToken);
+          }
+          completer.complete(true);
+          return true;
+        }
+      }
+
+      await _handleSessionExpired();
+      completer.complete(false);
+      return false;
+    } catch (_) {
+      await _handleSessionExpired();
+      completer.complete(false);
+      return false;
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  Future<void> _handleSessionExpired() async {
+    await sessionStorage.clearSession();
+    onSessionExpired?.call();
+  }
+
   Future<dynamic> get(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -62,9 +142,18 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParameters);
-      final response = await _httpClient
+      var response = await _httpClient
           .get(uri, headers: _buildHeaders(headers))
           .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401 && _shouldAttemptRefresh(path)) {
+        final refreshed = await _tryRefreshToken();
+        if (refreshed) {
+          response = await _httpClient
+              .get(uri, headers: _buildHeaders(headers))
+              .timeout(const Duration(seconds: 15));
+        }
+      }
 
       return _processResponse(response);
     } on SocketException {
@@ -84,13 +173,26 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParameters);
-      final response = await _httpClient
+      var response = await _httpClient
           .post(
             uri,
             headers: _buildHeaders(headers),
             body: body != null ? jsonEncode(body) : null,
           )
           .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401 && _shouldAttemptRefresh(path)) {
+        final refreshed = await _tryRefreshToken();
+        if (refreshed) {
+          response = await _httpClient
+              .post(
+                uri,
+                headers: _buildHeaders(headers),
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(const Duration(seconds: 15));
+        }
+      }
 
       return _processResponse(response);
     } on SocketException {
@@ -110,13 +212,26 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParameters);
-      final response = await _httpClient
+      var response = await _httpClient
           .put(
             uri,
             headers: _buildHeaders(headers),
             body: body != null ? jsonEncode(body) : null,
           )
           .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401 && _shouldAttemptRefresh(path)) {
+        final refreshed = await _tryRefreshToken();
+        if (refreshed) {
+          response = await _httpClient
+              .put(
+                uri,
+                headers: _buildHeaders(headers),
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(const Duration(seconds: 15));
+        }
+      }
 
       return _processResponse(response);
     } on SocketException {
@@ -135,9 +250,18 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParameters);
-      final response = await _httpClient
+      var response = await _httpClient
           .delete(uri, headers: _buildHeaders(headers))
           .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401 && _shouldAttemptRefresh(path)) {
+        final refreshed = await _tryRefreshToken();
+        if (refreshed) {
+          response = await _httpClient
+              .delete(uri, headers: _buildHeaders(headers))
+              .timeout(const Duration(seconds: 15));
+        }
+      }
 
       return _processResponse(response);
     } on SocketException {

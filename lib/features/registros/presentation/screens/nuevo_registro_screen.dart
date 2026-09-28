@@ -26,7 +26,6 @@ class NuevoRegistroScreen extends ConsumerStatefulWidget {
 class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _actividadesController = TextEditingController();
-  final TextEditingController _descuentoController = TextEditingController();
   bool _isSaving = false;
 
   @override
@@ -35,16 +34,12 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final formState = ref.read(registroFormNotifierProvider);
       _actividadesController.text = formState.actividades;
-      _descuentoController.text = formState.descuentoAlmuerzoMinutos > 0
-          ? formState.descuentoAlmuerzoMinutos.toString()
-          : '0';
     });
   }
 
   @override
   void dispose() {
     _actividadesController.dispose();
-    _descuentoController.dispose();
     super.dispose();
   }
 
@@ -115,7 +110,22 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     }
   }
 
+  void _ajustarHoraFin(int deltaMinutos) {
+    try {
+      final formState = ref.read(registroFormNotifierProvider);
+      final time = TimeCalculator.parseTimeOfDay(formState.horaFin);
+      final totalMin = (time.hour * 60 + time.minute) + deltaMinutos;
+      if (totalMin < 0 || totalMin >= 1440) return;
 
+      final newHour = (totalMin ~/ 60) % 24;
+      final newMin = totalMin % 60;
+      final formatted =
+          '${newHour.toString().padLeft(2, '0')}:${newMin.toString().padLeft(2, '0')}';
+
+      HapticFeedback.lightImpact();
+      ref.read(registroFormNotifierProvider.notifier).setHoraFin(formatted);
+    } catch (_) {}
+  }
 
   Future<void> _guardarRegistro() async {
     if (_isSaving) return;
@@ -151,10 +161,9 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
 
     // Validación de solapamiento de horarios (Regla de negocio)
     final listaRegistros = ref.read(registrosNotifierProvider).value ?? [];
-    final conflicto = ref.read(validarSolapamientoUseCaseProvider).execute(
-      registro: entity,
-      registrosExistentes: listaRegistros,
-    );
+    final conflicto = ref
+        .read(validarSolapamientoUseCaseProvider)
+        .execute(registro: entity, registrosExistentes: listaRegistros);
 
     if (conflicto != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,7 +182,9 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
 
     try {
       if (formState.isEditing) {
-        final failure = await ref.read(registrosNotifierProvider.notifier).actualizarRegistro(entity);
+        final failure = await ref
+            .read(registrosNotifierProvider.notifier)
+            .actualizarRegistro(entity);
         if (mounted) {
           if (failure != null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -192,7 +203,9 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
           );
         }
       } else {
-        final failure = await ref.read(registrosNotifierProvider.notifier).agregarRegistro(entity);
+        final failure = await ref
+            .read(registrosNotifierProvider.notifier)
+            .agregarRegistro(entity);
         if (mounted) {
           if (failure != null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -227,15 +240,7 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
   Widget build(BuildContext context) {
     final formState = ref.watch(registroFormNotifierProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    ref.listen<RegistroFormState>(registroFormNotifierProvider, (previous, next) {
-      if (previous?.descuentoAlmuerzoMinutos != next.descuentoAlmuerzoMinutos) {
-        final currentTextValue = int.tryParse(_descuentoController.text.trim()) ?? 0;
-        if (currentTextValue != next.descuentoAlmuerzoMinutos) {
-          _descuentoController.text = next.descuentoAlmuerzoMinutos.toString();
-        }
-      }
-    });
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     final diaKey = DateFormatters.getDiaSemanaKey(formState.fecha);
     final diaNombre = DateFormatters.getDiaNombre(diaKey);
@@ -578,7 +583,7 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Descanso / Hora de Comida',
+                                'Descuento por Almuerzo / Pausa',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -600,70 +605,47 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: _descuentoController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(3),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildDescuentoChip(
+                            minutos: 0,
+                            label: 'Sin pausa (0m)',
+                            isDark: isDark,
+                            primaryColor: primaryColor,
+                            formState: formState,
+                          ),
+                          _buildDescuentoChip(
+                            minutos: 30,
+                            label: '30 min',
+                            isDark: isDark,
+                            primaryColor: primaryColor,
+                            formState: formState,
+                          ),
+                          _buildDescuentoChip(
+                            minutos: 45,
+                            label: '45 min',
+                            isDark: isDark,
+                            primaryColor: primaryColor,
+                            formState: formState,
+                          ),
+                          _buildDescuentoChip(
+                            minutos: 60,
+                            label: '1 hora (60m)',
+                            isDark: isDark,
+                            primaryColor: primaryColor,
+                            formState: formState,
+                          ),
+                          _buildDescuentoChip(
+                            minutos: 120,
+                            label: '2 horas (120m)',
+                            isDark: isDark,
+                            primaryColor: primaryColor,
+                            formState: formState,
+                          ),
                         ],
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Ej. 45 (o 0 si no hubo descanso)',
-                          prefixIcon: const Icon(
-                            Icons.free_breakfast_outlined,
-                            size: 20,
-                            color: Color(0xFFF59E0B),
-                          ),
-                          suffixText: 'minutos',
-                          suffixStyle: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFF59E0B),
-                            fontSize: 13,
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? const Color(0xFF0F172A)
-                              : const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF4F46E5),
-                              width: 1.6,
-                            ),
-                          ),
-                        ),
-                        onChanged: (val) {
-                          final parsed = int.tryParse(val.trim()) ?? 0;
-                          ref
-                              .read(registroFormNotifierProvider.notifier)
-                              .setDescuentoAlmuerzoMinutos(parsed >= 0 ? parsed : 0);
-                        },
                       ),
                     ],
                   ),
@@ -732,7 +714,9 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
                             height: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : Row(
@@ -763,6 +747,62 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildQuickAdjustChip({
+    required String label,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescuentoChip({
+    required int minutos,
+    required String label,
+    required bool isDark,
+    required Color primaryColor,
+    required RegistroFormState formState,
+  }) {
+    final isSelected = formState.descuentoAlmuerzoMinutos == minutos;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      labelStyle: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        color: isSelected
+            ? Colors.white
+            : (isDark ? Colors.white : const Color(0xFF0F172A)),
+      ),
+      selectedColor: primaryColor,
+      backgroundColor: isDark
+          ? const Color(0xFF1E293B)
+          : const Color(0xFFF1F5F9),
+      showCheckmark: false,
+      onSelected: (selected) {
+        if (selected) {
+          HapticFeedback.selectionClick();
+          ref
+              .read(registroFormNotifierProvider.notifier)
+              .setDescuentoAlmuerzoMinutos(minutos);
+        }
+      },
     );
   }
 }

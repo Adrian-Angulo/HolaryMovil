@@ -38,6 +38,8 @@ import '../../features/registros/domain/usecases/get_registros_usecase.dart';
 import '../../features/registros/domain/usecases/update_registro_usecase.dart';
 import '../../features/registros/domain/usecases/validar_solapamiento_usecase.dart';
 
+import '../utils/app_navigator.dart';
+
 // -------------------------------------------------------------
 // Core Storage & Network Providers
 // -------------------------------------------------------------
@@ -47,7 +49,10 @@ final sessionStorageProvider = Provider<SessionStorage>((ref) {
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final storage = ref.watch(sessionStorageProvider);
-  return ApiClient(sessionStorage: storage);
+  return ApiClient(
+    sessionStorage: storage,
+    onSessionExpired: AppNavigator.logoutAndRedirectToAuth,
+  );
 });
 
 // -------------------------------------------------------------

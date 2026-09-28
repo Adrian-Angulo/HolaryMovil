@@ -10,6 +10,7 @@ import 'package:practi_horas_app/core/utils/csv_exporter.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
 import 'package:practi_horas_app/core/utils/pdf_exporter.dart';
 import 'package:practi_horas_app/features/auth/presentation/screens/auth_screen.dart';
+import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/theme_selector_modal.dart';
 import 'package:practi_horas_app/features/registros/presentation/providers/registro_provider.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/horario_dia.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/perfil.dart';
@@ -20,7 +21,6 @@ import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/
 import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/edit_metas_modal.dart';
 import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/edit_periodo_modal.dart';
 import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/perfil_header_organism.dart';
-import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/theme_selector_modal.dart';
 
 class PerfilConfigScreen extends ConsumerStatefulWidget {
   const PerfilConfigScreen({super.key});

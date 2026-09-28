@@ -112,7 +112,47 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: metricasAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.sync_problem_rounded,
+                  size: 56,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No pudimos cargar tus métricas',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  err.toString().replaceAll('Exception:', '').trim(),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ref.invalidate(registrosNotifierProvider);
+                    ref.invalidate(perfilNotifierProvider);
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (metricas) {
           final perfil = perfilAsync.value;
           final horarioHoy = perfil?.horarioSemanal[diaSemanaKey];

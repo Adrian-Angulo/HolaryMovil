@@ -34,9 +34,7 @@ class _HomeNavigationScreenState extends ConsumerState<HomeNavigationScreen> {
       NuevoRegistroScreen(
         onRegistroGuardado: () => _onTabSelected(0),
       ),
-      HistorialScreen(
-        onEditRegistro: (_) => _onTabSelected(1),
-      ),
+      const HistorialScreen(),
       const PerfilConfigScreen(),
     ];
 
