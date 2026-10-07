@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:go_router/go_router.dart';
 import 'package:practi_horas_app/core/di/dependency_injection.dart';
+import 'package:practi_horas_app/core/router/app_routes.dart';
 import 'package:practi_horas_app/core/shared_atomic/atoms/app_logo.dart';
 import 'package:practi_horas_app/features/perfil/presentation/providers/perfil_provider.dart';
-import 'package:practi_horas_app/features/perfil/presentation/screens/registro_perfil_screen.dart';
-import 'package:practi_horas_app/features/shell/presentation/screens/home_navigation_screen.dart';
 import 'package:practi_horas_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/forgot_password_modal.dart';
 import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/login_form_organism.dart';
 import 'package:practi_horas_app/features/auth/presentation/widgets/organisms/register_form_organism.dart';
+
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -77,12 +78,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     ref.invalidate(perfilNotifierProvider);
 
     if (mounted) {
-      final Widget destino = perfilCompletado
-          ? const HomeNavigationScreen()
-          : const RegistroPerfilScreen();
+      final String destino = perfilCompletado
+          ? AppRoutes.home
+          : AppRoutes.registroPerfil;
 
-      Navigator.of(context)
-          .pushReplacement(MaterialPageRoute(builder: (_) => destino));
+      context.go(destino);
     }
   }
 

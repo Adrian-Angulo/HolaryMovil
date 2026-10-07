@@ -9,7 +9,9 @@ import 'package:practi_horas_app/core/utils/csv_exporter.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
 import 'package:practi_horas_app/core/utils/pdf_exporter.dart';
 import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
+import 'package:practi_horas_app/core/shared_atomic/organisms/network_error_state.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/perfil.dart';
+
 import 'package:practi_horas_app/features/perfil/presentation/providers/perfil_provider.dart';
 import 'package:practi_horas_app/features/registros/domain/entities/registro_hora.dart';
 import 'package:practi_horas_app/features/registros/presentation/providers/registro_provider.dart';
@@ -236,8 +238,10 @@ class HistorialScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final registrosAsync = ref.watch(registrosNotifierProvider);
     final registrosFiltrados = ref.watch(historialFiltradoProvider);
     final modalidadFiltro = ref.watch(historialFiltroModalidadProvider);
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     double totalHorasFiltradas = 0.0;
@@ -335,46 +339,72 @@ class HistorialScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: registrosFiltrados.isEmpty
-                ? FadeIn(
-                    duration: const Duration(milliseconds: 450),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.history_toggle_off_rounded,
-                            size: 64,
-                            color: isDark
-                                ? const Color(0xFF475569)
-                                : const Color(0xFFCBD5E1),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No hay jornadas registradas',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B),
+            child: registrosAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => NetworkErrorState(
+                title: 'No pudimos cargar tu historial',
+                message: err.toString().replaceAll('Exception:', '').trim(),
+                onRetry: () =>
+                    ref.read(registrosNotifierProvider.notifier).cargarRegistros(),
+              ),
+              data: (_) {
+                if (registrosFiltrados.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: () => ref
+                        .read(registrosNotifierProvider.notifier)
+                        .cargarRegistros(),
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.45,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.history_toggle_off_rounded,
+                                  size: 64,
+                                  color: isDark
+                                      ? const Color(0xFF475569)
+                                      : const Color(0xFFCBD5E1),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No hay jornadas registradas',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Tus horas registradas aparecerán aquí',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: isDark
+                                        ? const Color(0xFF64748B)
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tus horas registradas aparecerán aquí',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: isDark
-                                  ? const Color(0xFF64748B)
-                                  : const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  )
-                : ListView.builder(
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () => ref
+                      .read(registrosNotifierProvider.notifier)
+                      .cargarRegistros(),
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
@@ -391,6 +421,9 @@ class HistorialScreen extends ConsumerWidget {
                       );
                     },
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),

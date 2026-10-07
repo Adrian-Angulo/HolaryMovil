@@ -110,22 +110,6 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     }
   }
 
-  void _ajustarHoraFin(int deltaMinutos) {
-    try {
-      final formState = ref.read(registroFormNotifierProvider);
-      final time = TimeCalculator.parseTimeOfDay(formState.horaFin);
-      final totalMin = (time.hour * 60 + time.minute) + deltaMinutos;
-      if (totalMin < 0 || totalMin >= 1440) return;
-
-      final newHour = (totalMin ~/ 60) % 24;
-      final newMin = totalMin % 60;
-      final formatted =
-          '${newHour.toString().padLeft(2, '0')}:${newMin.toString().padLeft(2, '0')}';
-
-      HapticFeedback.lightImpact();
-      ref.read(registroFormNotifierProvider.notifier).setHoraFin(formatted);
-    } catch (_) {}
-  }
 
   Future<void> _guardarRegistro() async {
     if (_isSaving) return;
@@ -750,27 +734,6 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     );
   }
 
-  Widget _buildQuickAdjustChip({
-    required String label,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
 
   Widget _buildDescuentoChip({
     required int minutos,

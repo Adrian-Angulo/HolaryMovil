@@ -12,5 +12,4 @@ abstract class IRegistroRepository {
     DateTime inicio,
     DateTime fin,
   );
-  Future<void> sincronizarPendientes();
 }

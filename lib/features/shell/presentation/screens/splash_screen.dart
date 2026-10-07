@@ -1,15 +1,14 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/dependency_injection.dart';
-import '../../../auth/presentation/screens/auth_screen.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../perfil/presentation/providers/perfil_provider.dart';
-import '../../../perfil/presentation/screens/registro_perfil_screen.dart';
 import '../../../registros/presentation/providers/registro_provider.dart';
-import 'home_navigation_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -32,7 +31,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final storage = ref.read(sessionStorageProvider);
     final hasSession = storage.hasSession();
 
-    Widget destino;
+    String destino;
 
     if (hasSession) {
       try {
@@ -41,30 +40,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         final perfil = ref.read(perfilNotifierProvider).value;
 
         final bool estaCompletado = storage.isPerfilCompletado() || (perfil?.perfilCompletado ?? false);
-        destino = estaCompletado ? const HomeNavigationScreen() : const RegistroPerfilScreen();
+        destino = estaCompletado ? AppRoutes.home : AppRoutes.registroPerfil;
       } catch (_) {
         if (!storage.hasSession()) {
-          destino = const AuthScreen();
+          destino = AppRoutes.auth;
         } else {
           final bool estaCompletado = storage.isPerfilCompletado();
-          destino = estaCompletado ? const HomeNavigationScreen() : const RegistroPerfilScreen();
+          destino = estaCompletado ? AppRoutes.home : AppRoutes.registroPerfil;
         }
       }
     } else {
-      destino = const AuthScreen();
+      destino = AppRoutes.auth;
     }
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => destino,
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 400),
-      ),
-    );
+    context.go(destino);
   }
 
   @override

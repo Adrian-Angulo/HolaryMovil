@@ -94,7 +94,6 @@ final perfilRepositoryProvider = Provider<IPerfilRepository>((ref) {
 final registroRepositoryProvider = Provider<IRegistroRepository>((ref) {
   return RegistroRepositoryImpl(
     ref.watch(registroRemoteDataSourceProvider),
-    ref.watch(sessionStorageProvider),
   );
 });
 

@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/dependency_injection.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/shared_atomic/atoms/custom_card.dart';
 import '../../../../core/utils/date_formatters.dart';
 import '../../../../core/utils/time_calculator.dart';
-import '../../../shell/presentation/screens/home_navigation_screen.dart';
 import '../../domain/entities/horario_dia.dart';
 import '../../domain/entities/perfil.dart';
 import '../providers/perfil_provider.dart';
+
 
 class RegistroPerfilScreen extends ConsumerStatefulWidget {
   const RegistroPerfilScreen({super.key});
@@ -383,16 +385,7 @@ class _RegistroPerfilScreenState extends ConsumerState<RegistroPerfilScreen> {
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const HomeNavigationScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
+    context.go(AppRoutes.home);
   }
 
   @override

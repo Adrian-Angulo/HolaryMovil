@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:go_router/go_router.dart';
 import 'package:practi_horas_app/core/constants/app_constants.dart';
 import 'package:practi_horas_app/core/di/dependency_injection.dart';
+import 'package:practi_horas_app/core/router/app_routes.dart';
 import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
 import 'package:practi_horas_app/core/shared_atomic/molecules/menu_action_tile.dart';
 import 'package:practi_horas_app/core/utils/csv_exporter.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
 import 'package:practi_horas_app/core/utils/pdf_exporter.dart';
-import 'package:practi_horas_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:practi_horas_app/features/perfil/presentation/widgets/organisms/theme_selector_modal.dart';
+
 import 'package:practi_horas_app/features/registros/presentation/providers/registro_provider.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/horario_dia.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/perfil.dart';
@@ -312,10 +314,7 @@ class _PerfilConfigScreenState extends ConsumerState<PerfilConfigScreen> {
       ref.invalidate(registrosNotifierProvider);
 
       if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
-          (route) => false,
-        );
+        context.go(AppRoutes.auth);
       }
     }
   }

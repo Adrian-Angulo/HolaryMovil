@@ -12,18 +12,15 @@ class AppConstants {
   static const String profileEndpoint = '/profile';
   static const String registrosEndpoint = '/registros';
   static const String metricasDashboardEndpoint = '/metricas/dashboard';
-  static const String syncBatchEndpoint = '/sync/batch';
 
-  // SharedPreferences Keys
+  // SharedPreferences Keys (Sesión y Autenticación)
   static const String tokenKey = 'auth_access_token';
   static const String refreshTokenKey = 'auth_refresh_token';
   static const String userIdKey = 'auth_user_id';
   static const String userEmailKey = 'auth_user_email';
   static const String userNameKey = 'auth_user_name';
   static const String perfilCompletadoKey = 'auth_perfil_completado';
-  static const String cachedPerfilKey = 'cache_perfil_data';
-  static const String cachedRegistrosKey = 'cache_registros_data';
-  static const String syncQueueKey = 'offline_sync_queue';
+
 
   // Días de la semana normalizados
   static const List<String> diasSemanaKeys = [
