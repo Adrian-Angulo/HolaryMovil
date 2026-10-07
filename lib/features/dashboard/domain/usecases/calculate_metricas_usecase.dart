@@ -140,17 +140,14 @@ class CalculateMetricasUseCase {
 
       diasHabilesRestantes = (esHoyHabil ? 1 : 0) + diasHabilesFuturos;
 
-      // Meta efectiva a computar dentro del periodo del calendario
-      final double metaEfectivaPeriodo = (meta - horasPrevias) > 0 ? (meta - horasPrevias) : 0.0;
-
       if (totalDiasHabiles > 0) {
         // Horas esperadas al inicio del turno de hoy (sin sesgo matutino del día en curso)
         horasEsperadasHoy = double.parse(
-          (metaEfectivaPeriodo * (diasHabilesCerrados / totalDiasHabiles)).toStringAsFixed(2),
+          (meta * (diasHabilesCerrados / totalDiasHabiles)).toStringAsFixed(2),
         );
 
-        // Diferencia respecto a lo registrado dentro de la app en este periodo
-        diferenciaHorasRitmo = double.parse((horasRegistradas - horasEsperadasHoy).toStringAsFixed(2));
+        // Diferencia respecto al total acumulado (previas cursadas + registradas en app)
+        diferenciaHorasRitmo = double.parse((horasTotales - horasEsperadasHoy).toStringAsFixed(2));
 
         if (horasRestantes <= 0) {
           estadoRitmo = EstadoRitmo.adelantado;

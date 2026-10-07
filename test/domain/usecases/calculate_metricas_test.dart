@@ -14,18 +14,19 @@ void main() {
       fechaFin: DateTime(2026, 9, 30),
     );
 
-    test('Calcula métricas iniciales considerando horas iniciales cursadas y sin sesgo matutino', () {
+    test('Calcula métricas iniciales al inicio del periodo sin sesgo matutino', () {
+      final perfilSinHoras = perfil.copyWith(horasInicialesPrevias: 0.0);
       final metricas = useCase.execute(
         registros: [],
-        perfil: perfil,
+        perfil: perfilSinHoras,
         fechaReferencia: DateTime(2026, 9, 1), // Primer día del periodo
       );
 
-      expect(metricas.horasTotalesCompletadas, 20.0);
-      expect(metricas.horasPreviasCursadas, 20.0);
+      expect(metricas.horasTotalesCompletadas, 0.0);
+      expect(metricas.horasPreviasCursadas, 0.0);
       expect(metricas.metaHorasTotal, 100.0);
-      expect(metricas.horasRestantes, 80.0);
-      expect(metricas.porcentajeProgreso, 20.0);
+      expect(metricas.horasRestantes, 100.0);
+      expect(metricas.porcentajeProgreso, 0.0);
       expect(metricas.totalDiasTrabajados, 0);
       // Al ser el inicio de hoy, no hay días cerrados previos, no se exige horas antes de trabajarlas
       expect(metricas.horasEsperadasHoy, 0.0);
