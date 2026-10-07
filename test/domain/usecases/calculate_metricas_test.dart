@@ -14,11 +14,11 @@ void main() {
       fechaFin: DateTime(2026, 9, 30),
     );
 
-    test('Calcula métricas iniciales considerando horas iniciales cursadas', () {
+    test('Calcula métricas iniciales considerando horas iniciales cursadas y sin sesgo matutino', () {
       final metricas = useCase.execute(
         registros: [],
         perfil: perfil,
-        fechaReferencia: DateTime(2026, 9, 1),
+        fechaReferencia: DateTime(2026, 9, 1), // Primer día del periodo
       );
 
       expect(metricas.horasTotalesCompletadas, 20.0);
@@ -27,9 +27,13 @@ void main() {
       expect(metricas.horasRestantes, 80.0);
       expect(metricas.porcentajeProgreso, 20.0);
       expect(metricas.totalDiasTrabajados, 0);
+      // Al ser el inicio de hoy, no hay días cerrados previos, no se exige horas antes de trabajarlas
+      expect(metricas.horasEsperadasHoy, 0.0);
+      expect(metricas.diferenciaHorasRitmo, 0.0);
+      expect(metricas.estadoRitmo, EstadoRitmo.aTiempo);
     });
 
-    test('Calcula ritmo y cumplimiento correctamente', () {
+    test('Calcula ritmo y cumplimiento correctamente durante el periodo', () {
       final fechaRef = DateTime(2026, 9, 21); // Lunes
       final registros = [
         RegistroHora(
@@ -41,7 +45,7 @@ void main() {
           horasComputables: 5.0,
           modalidad: 'Presencial',
           actividades: 'Desarrollo',
-          createdAt: DateTime.now(),
+          createdAt: DateTime(2026, 9, 21),
         ),
       ];
 
@@ -60,6 +64,22 @@ void main() {
       expect(metricas.totalDiasTrabajados, 1);
       expect(metricas.estadoRitmo != EstadoRitmo.sinFechas, true);
       expect(metricas.ritmoDiarioSugerido > 0, true);
+    });
+
+    test('Retorna EstadoRitmo.vencido cuando la fecha actual sobrepasa fechaFin y restan horas', () {
+      final fechaPasada = DateTime(2026, 10, 5); // Fecha posterior al 30 de septiembre
+
+      final metricas = useCase.execute(
+        registros: [],
+        perfil: perfil,
+        fechaReferencia: fechaPasada,
+      );
+
+      expect(metricas.horasRestantes, 80.0);
+      expect(metricas.diasHabilesRestantes, 0);
+      expect(metricas.estadoRitmo, EstadoRitmo.vencido);
+      expect(metricas.ritmoDiarioSugerido, 0.0);
+      expect(metricas.mensajeRitmo.contains('finalizó'), true);
     });
   });
 }

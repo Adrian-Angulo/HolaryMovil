@@ -117,50 +117,65 @@ class CalculateMetricasUseCase {
       }
 
       int totalDiasHabiles = 0;
-      int diasHabilesTranscurridos = 0;
-      int diasRestantes = 0;
+      int diasHabilesCerrados = 0;
+      bool esHoyHabil = false;
+      int diasHabilesFuturos = 0;
 
       DateTime iter = fInicio;
       while (iter.isBefore(fFin) || iter.isAtSameMomentAs(fFin)) {
         if (diasLaboralesWeekdays.contains(iter.weekday)) {
           totalDiasHabiles++;
-          if (iter.isBefore(fHoy) || iter.isAtSameMomentAs(fHoy)) {
-            diasHabilesTranscurridos++;
-          }
-          if (iter.isAfter(fHoy)) {
-            diasRestantes++;
+          final fIter = DateTime(iter.year, iter.month, iter.day);
+
+          if (fIter.isBefore(fHoy)) {
+            diasHabilesCerrados++;
+          } else if (fIter.isAtSameMomentAs(fHoy)) {
+            esHoyHabil = true;
+          } else {
+            diasHabilesFuturos++;
           }
         }
         iter = iter.add(const Duration(days: 1));
       }
 
-      diasHabilesRestantes = diasRestantes;
+      diasHabilesRestantes = (esHoyHabil ? 1 : 0) + diasHabilesFuturos;
+
+      // Meta efectiva a computar dentro del periodo del calendario
+      final double metaEfectivaPeriodo = (meta - horasPrevias) > 0 ? (meta - horasPrevias) : 0.0;
 
       if (totalDiasHabiles > 0) {
+        // Horas esperadas al inicio del turno de hoy (sin sesgo matutino del día en curso)
         horasEsperadasHoy = double.parse(
-          (meta * (diasHabilesTranscurridos / totalDiasHabiles)).toStringAsFixed(2),
+          (metaEfectivaPeriodo * (diasHabilesCerrados / totalDiasHabiles)).toStringAsFixed(2),
         );
-        diferenciaHorasRitmo = double.parse((horasTotales - horasEsperadasHoy).toStringAsFixed(2));
 
-        if (diasHabilesRestantes > 0) {
-          ritmoDiarioSugerido = double.parse((horasRestantes / diasHabilesRestantes).toStringAsFixed(2));
-        } else {
-          ritmoDiarioSugerido = horasRestantes;
-        }
+        // Diferencia respecto a lo registrado dentro de la app en este periodo
+        diferenciaHorasRitmo = double.parse((horasRegistradas - horasEsperadasHoy).toStringAsFixed(2));
 
         if (horasRestantes <= 0) {
           estadoRitmo = EstadoRitmo.adelantado;
+          ritmoDiarioSugerido = 0.0;
           mensajeRitmo = '🎉 ¡Completaste el 100% de tus horas de prácticas!';
-        } else if (diferenciaHorasRitmo >= 3.0) {
-          estadoRitmo = EstadoRitmo.adelantado;
-          mensajeRitmo = '🚀 Vas adelantado por ${diferenciaHorasRitmo.toStringAsFixed(1)} hrs. ¡Excelente ritmo!';
-        } else if (diferenciaHorasRitmo >= -3.0 && diferenciaHorasRitmo < 3.0) {
-          estadoRitmo = EstadoRitmo.aTiempo;
-          mensajeRitmo = '✨ Vas al día con tu meta. Mantén este ritmo.';
+        } else if (diasHabilesRestantes == 0) {
+          estadoRitmo = EstadoRitmo.vencido;
+          ritmoDiarioSugerido = 0.0;
+          mensajeRitmo =
+              '📅 El periodo de prácticas finalizó con ${horasRestantes.toStringAsFixed(1)} hrs pendientes. Ajusta tu fecha de fin si acordaste una extensión.';
         } else {
-          estadoRitmo = EstadoRitmo.atrasado;
-          final atraso = diferenciaHorasRitmo.abs().toStringAsFixed(1);
-          mensajeRitmo = '⏳ Vas atrasado por $atraso hrs. Necesitas hacer $ritmoDiarioSugerido hrs/día para terminar a tiempo.';
+          ritmoDiarioSugerido = double.parse((horasRestantes / diasHabilesRestantes).toStringAsFixed(2));
+
+          if (diferenciaHorasRitmo >= 3.0) {
+            estadoRitmo = EstadoRitmo.adelantado;
+            mensajeRitmo = '🚀 Vas adelantado por +${diferenciaHorasRitmo.toStringAsFixed(1)} hrs. ¡Excelente ritmo!';
+          } else if (diferenciaHorasRitmo >= -3.0) {
+            estadoRitmo = EstadoRitmo.aTiempo;
+            mensajeRitmo = '✨ Vas al día según tu planificación.';
+          } else {
+            estadoRitmo = EstadoRitmo.atrasado;
+            final atraso = diferenciaHorasRitmo.abs().toStringAsFixed(1);
+            mensajeRitmo =
+                '⏳ Vas atrasado por $atraso hrs. Necesitas hacer $ritmoDiarioSugerido hrs/día para terminar a tiempo.';
+          }
         }
       } else {
         estadoRitmo = EstadoRitmo.sinFechas;

@@ -2,6 +2,7 @@ enum EstadoRitmo {
   adelantado,
   aTiempo,
   atrasado,
+  vencido,
   sinFechas,
 }
 

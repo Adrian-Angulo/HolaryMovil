@@ -37,6 +37,11 @@ class RitmoStatusCard extends StatelessWidget {
         statusIcon = Icons.timelapse_rounded;
         statusTitle = 'Ritmo Atrasado';
         break;
+      case EstadoRitmo.vencido:
+        badgeColor = const Color(0xFFEF4444);
+        statusIcon = Icons.event_busy_rounded;
+        statusTitle = 'Periodo Finalizado';
+        break;
       case EstadoRitmo.sinFechas:
         badgeColor = const Color(0xFF64748B);
         statusIcon = Icons.event_note_rounded;
@@ -99,9 +104,11 @@ class RitmoStatusCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    metricas.diferenciaHorasRitmo >= 0
-                        ? '+${metricas.diferenciaHorasRitmo}h'
-                        : '${metricas.diferenciaHorasRitmo}h',
+                    metricas.estadoRitmo == EstadoRitmo.vencido
+                        ? 'Pendiente'
+                        : metricas.diferenciaHorasRitmo >= 0
+                            ? '+${metricas.diferenciaHorasRitmo}h'
+                            : '${metricas.diferenciaHorasRitmo}h',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -124,7 +131,17 @@ class RitmoStatusCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          if (metricas.estadoRitmo != EstadoRitmo.sinFechas) ...[
+          if (metricas.estadoRitmo == EstadoRitmo.vencido && onConfigurarFechas != null) ...[
+            OutlinedButton.icon(
+              onPressed: onConfigurarFechas,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFEF4444),
+                side: const BorderSide(color: Color(0xFFEF4444)),
+              ),
+              icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+              label: const Text('Extender Fecha de Fin'),
+            ),
+          ] else if (metricas.estadoRitmo != EstadoRitmo.sinFechas) ...[
             Wrap(
               spacing: 8,
               runSpacing: 8,

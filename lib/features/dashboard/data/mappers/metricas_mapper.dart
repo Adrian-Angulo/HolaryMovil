@@ -11,6 +11,8 @@ class MetricasMapper {
         return EstadoRitmo.aTiempo;
       case 'atrasado':
         return EstadoRitmo.atrasado;
+      case 'vencido':
+        return EstadoRitmo.vencido;
       case 'sin_fechas':
       case 'sinfechas':
       default:
