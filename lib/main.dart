@@ -12,11 +12,7 @@ import 'features/shell/presentation/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Inicializar almacenamiento de sesión
   final sessionStorage = await SessionStorage.create();
-
-  // Inicializar localización para formatos de fecha en español
   await initializeDateFormatting('es_ES', null);
 
   runApp(
