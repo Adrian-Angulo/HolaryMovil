@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:practi_horas_app/core/constants/app_constants.dart';
+import 'package:practi_horas_app/core/utils/app_time_picker.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
 import 'package:practi_horas_app/core/utils/time_calculator.dart';
 import 'package:practi_horas_app/features/perfil/domain/entities/horario_dia.dart';
@@ -210,9 +211,10 @@ class _EditHorarioModalState extends State<EditHorarioModal> {
                       child: InkWell(
                         onTap: () async {
                           final initial = TimeCalculator.parseTimeOfDay(_horaInicio);
-                          final picked = await showTimePicker(
+                          final picked = await AppTimePicker.show(
                             context: context,
                             initialTime: initial,
+                            title: 'Hora Entrada',
                           );
                           if (picked != null) {
                             setState(() {
@@ -259,9 +261,10 @@ class _EditHorarioModalState extends State<EditHorarioModal> {
                       child: InkWell(
                         onTap: () async {
                           final initial = TimeCalculator.parseTimeOfDay(_horaFin);
-                          final picked = await showTimePicker(
+                          final picked = await AppTimePicker.show(
                             context: context,
                             initialTime: initial,
+                            title: 'Hora Salida',
                           );
                           if (picked != null) {
                             setState(() {

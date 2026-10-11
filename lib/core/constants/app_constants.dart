@@ -1,8 +1,8 @@
 class AppConstants {
   static const String appName = 'Horaly';
 
-  // API Base URL (Producción en Render)
-  static const String apiBaseUrl = 'https://practihoras-backend.onrender.com/api/v1';
+  static const String apiBaseUrl =
+      'https://practihoras-backend.onrender.com/api/v1';
 
   // Endpoints
   static const String authRegisterEndpoint = '/auth/register';
@@ -20,7 +20,6 @@ class AppConstants {
   static const String userEmailKey = 'auth_user_email';
   static const String userNameKey = 'auth_user_name';
   static const String perfilCompletadoKey = 'auth_perfil_completado';
-
 
   // Días de la semana normalizados
   static const List<String> diasSemanaKeys = [

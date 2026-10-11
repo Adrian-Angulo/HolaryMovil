@@ -1,19 +1,19 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/di/dependency_injection.dart';
-import '../../../../core/router/app_routes.dart';
-import '../../../../core/shared_atomic/atoms/custom_card.dart';
-import '../../../../core/utils/date_formatters.dart';
-import '../../../../core/utils/time_calculator.dart';
-import '../../domain/entities/horario_dia.dart';
-import '../../domain/entities/perfil.dart';
-import '../providers/perfil_provider.dart';
-
+import 'package:practi_horas_app/core/di/dependency_injection.dart';
+import 'package:practi_horas_app/core/router/app_routes.dart';
+import 'package:practi_horas_app/core/shared_atomic/atoms/custom_button.dart';
+import 'package:practi_horas_app/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:practi_horas_app/features/perfil/presentation/providers/onboarding_wizard_provider.dart';
+import 'package:practi_horas_app/features/perfil/presentation/providers/perfil_provider.dart';
+import 'package:practi_horas_app/features/perfil/presentation/widgets/wizard/step_convenio_widget.dart';
+import 'package:practi_horas_app/features/perfil/presentation/widgets/wizard/step_horario_widget.dart';
+import 'package:practi_horas_app/features/perfil/presentation/widgets/wizard/step_periodo_widget.dart';
+import 'package:practi_horas_app/features/perfil/presentation/widgets/wizard/wizard_progress_header.dart';
 
 class RegistroPerfilScreen extends ConsumerStatefulWidget {
   const RegistroPerfilScreen({super.key});
@@ -24,720 +24,224 @@ class RegistroPerfilScreen extends ConsumerStatefulWidget {
 }
 
 class _RegistroPerfilScreenState extends ConsumerState<RegistroPerfilScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nombreController;
-  late TextEditingController _metaHorasController;
-  late TextEditingController _horasPreviasController;
-  late TextEditingController _horasMinimasController;
-
-  DateTime? _fechaInicio;
-  DateTime? _fechaFin;
-  late Map<String, HorarioDia> _horarioSemanal;
+  late PageController _pageController;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    final defaultPerfil = Perfil.defaultPerfil();
-    final registeredName = ref.read(sessionStorageProvider).getUserName() ?? '';
-    _nombreController = TextEditingController(text: registeredName);
-    _metaHorasController = TextEditingController(text: '360');
-    _horasPreviasController = TextEditingController(text: '0');
-    _horasMinimasController = TextEditingController(text: '30');
+    _pageController = PageController();
 
-    _fechaInicio = defaultPerfil.fechaInicio;
-    _fechaFin = defaultPerfil.fechaFin;
-    _horarioSemanal = Map<String, HorarioDia>.from(
-      defaultPerfil.horarioSemanal,
-    );
+    // Precargar nombre registrado si existe
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sessionName = ref.read(sessionStorageProvider).getUserName();
+      if (sessionName != null && sessionName.trim().isNotEmpty) {
+        ref.read(onboardingWizardProvider.notifier).setNombre(sessionName.trim());
+      }
+    });
   }
 
   @override
   void dispose() {
-    _nombreController.dispose();
-    _metaHorasController.dispose();
-    _horasPreviasController.dispose();
-    _horasMinimasController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  Future<void> _seleccionarFechaInicio() async {
-    final now = DateTime.now();
-    final initial = _fechaInicio ?? now;
-    final first = DateTime(2020);
-    final last = DateTime(2035);
-    final validInitial = initial.isBefore(first)
-        ? first
-        : (initial.isAfter(last) ? last : initial);
+  void _onNext() {
+    final state = ref.read(onboardingWizardProvider);
+    final notifier = ref.read(onboardingWizardProvider.notifier);
 
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: validInitial,
-      firstDate: first,
-      lastDate: last,
-      locale: const Locale('es', 'ES'),
-      helpText: 'Fecha de Inicio de Prácticas',
-      cancelText: 'Cancelar',
-      confirmText: 'Seleccionar',
-    );
-    if (picked != null) {
-      setState(() {
-        _fechaInicio = picked;
-        if (_fechaFin != null && _fechaFin!.isBefore(picked)) {
-          _fechaFin = picked.add(const Duration(days: 90));
-        }
-      });
+    // Validar en el paso 0
+    if (state.currentStep == 0) {
+      if (state.metaHorasTotal <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La meta de horas debe ser mayor a 0.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (state.currentStep < 2) {
+      notifier.nextStep();
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
     }
   }
 
-  Future<void> _seleccionarFechaFin() async {
-    final now = DateTime.now();
-    final initial =
-        _fechaFin ??
-        (_fechaInicio != null
-            ? _fechaInicio!.add(const Duration(days: 90))
-            : now.add(const Duration(days: 90)));
-    final first = _fechaInicio ?? DateTime(2020);
-    final last = DateTime(2035);
-    final validInitial = initial.isBefore(first)
-        ? first
-        : (initial.isAfter(last) ? last : initial);
+  void _onBack() {
+    final state = ref.read(onboardingWizardProvider);
+    final notifier = ref.read(onboardingWizardProvider.notifier);
 
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: validInitial,
-      firstDate: first,
-      lastDate: last,
-      locale: const Locale('es', 'ES'),
-      helpText: 'Fecha de Fin de Prácticas',
-      cancelText: 'Cancelar',
-      confirmText: 'Seleccionar',
-    );
-    if (picked != null) {
-      setState(() => _fechaFin = picked);
+    if (state.currentStep > 0) {
+      notifier.prevStep();
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
     }
   }
 
-  Future<void> _editarHorarioDia(String diaKey) async {
-    final horario =
-        _horarioSemanal[diaKey] ??
-        HorarioDia(
-          diaSemana: diaKey,
-          activo: false,
-          horaInicio: '08:00',
-          horaFin: '13:00',
-          refrigerioMinutos: 0,
-          modalidad: 'Presencial',
-        );
+  Future<void> _finalizarOnboarding() async {
+    final notifier = ref.read(onboardingWizardProvider.notifier);
+    final perfil = notifier.buildPerfilFinal();
 
-    bool activo = horario.activo;
-    String horaInicio = horario.horaInicio;
-    String horaFin = horario.horaFin;
-    String modalidad = horario.modalidad;
-    int refrigerioMinutos = horario.refrigerioMinutos;
+    setState(() => _isLoading = true);
 
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final horasNetas = TimeCalculator.calcularHorasNetas(
-              horaInicio,
-              horaFin,
-              refrigerioMinutos,
-            );
+    try {
+      await ref.read(perfilNotifierProvider.notifier).guardarPerfilInicial(
+            nombre: perfil.nombre,
+            metaHoras: perfil.metaHorasTotal,
+            horasInicialesPrevias: perfil.horasInicialesPrevias,
+            horasMinimasSemanales: perfil.horasMinimasSemanales,
+            fechaInicio: perfil.fechaInicio,
+            fechaFin: perfil.fechaFin,
+            horarioSemanal: perfil.horarioSemanal,
+          );
 
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Configurar ${DateFormatters.getDiaNombre(diaKey)}',
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Switch(
-                          value: activo,
-                          activeTrackColor: const Color(0xFF10B981),
-                          onChanged: (val) {
-                            setModalState(() => activo = val);
-                          },
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    if (activo) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text(
-                                'Hora Inicio',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              subtitle: Text(
-                                horaInicio,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              onTap: () async {
-                                final initial = TimeCalculator.parseTimeOfDay(
-                                  horaInicio,
-                                );
-                                final picked = await showTimePicker(
-                                  context: context,
-                                  initialTime: initial,
-                                );
-                                if (picked != null) {
-                                  setModalState(() {
-                                    horaInicio = TimeCalculator.formatTimeOfDay(
-                                      picked,
-                                    );
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          Expanded(
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text(
-                                'Hora Fin',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              subtitle: Text(
-                                horaFin,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              onTap: () async {
-                                final initial = TimeCalculator.parseTimeOfDay(
-                                  horaFin,
-                                );
-                                final picked = await showTimePicker(
-                                  context: context,
-                                  initialTime: initial,
-                                );
-                                if (picked != null) {
-                                  setModalState(() {
-                                    horaFin = TimeCalculator.formatTimeOfDay(
-                                      picked,
-                                    );
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Minutos de descanso / comida (no computables)',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        initialValue: refrigerioMinutos > 0 ? refrigerioMinutos.toString() : '0',
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'Ej. 45 (o 0 si no hay descanso)',
-                          prefixIcon: const Icon(Icons.free_breakfast_outlined, size: 20, color: Color(0xFFF59E0B)),
-                          suffixText: 'minutos',
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onChanged: (val) {
-                          final parsed = int.tryParse(val.trim()) ?? 0;
-                          setModalState(() {
-                            refrigerioMinutos = parsed >= 0 ? parsed : 0;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Modalidad', style: TextStyle(fontSize: 12)),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        children: AppConstants.modalidades.map((mod) {
-                          return ChoiceChip(
-                            label: Text(mod),
-                            selected: modalidad == mod,
-                            onSelected: (_) =>
-                                setModalState(() => modalidad = mod),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF10B981)),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Horas efectivas netas: ${horasNetas.toStringAsFixed(1)} hrs',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF10B981),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Center(
-                          child: Text(
-                            'Día no laboral / descanso',
-                            style: GoogleFonts.inter(color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F46E5),
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _horarioSemanal[diaKey] = horario.copyWith(
-                              activo: activo,
-                              horaInicio: horaInicio,
-                              horaFin: horaFin,
-                              refrigerioMinutos: refrigerioMinutos,
-                              modalidad: modalidad,
-                            );
-                          });
-                          Navigator.of(ctx).pop();
-                        },
-                        child: const Text('Aceptar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+      // Invalidar métricas de dashboard para recálculo inmediato con la nueva fechaFin
+      ref.invalidate(dashboardMetricsProvider);
 
-  Future<void> _guardarYContinuar() async {
-    if (!_formKey.currentState!.validate()) return;
+      if (!mounted) return;
 
-    final nombre = _nombreController.text.trim().isEmpty
-        ? 'Practicante'
-        : _nombreController.text.trim();
-    final metaHoras =
-        double.tryParse(_metaHorasController.text.trim()) ?? 360.0;
-    final horasPrevias =
-        double.tryParse(_horasPreviasController.text.trim()) ?? 0.0;
-    final horasMinimas =
-        double.tryParse(_horasMinimasController.text.trim()) ?? 30.0;
-
-    await ref
-        .read(perfilNotifierProvider.notifier)
-        .guardarPerfilInicial(
-          nombre: nombre,
-          metaHoras: metaHoras,
-          horasInicialesPrevias: horasPrevias,
-          horasMinimasSemanales: horasMinimas,
-          fechaInicio: _fechaInicio,
-          fechaFin: _fechaFin,
-          horarioSemanal: _horarioSemanal,
-        );
-
-    if (!mounted) return;
-
-    context.go(AppRoutes.home);
+      context.go(AppRoutes.home);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar perfil: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final wizardState = ref.watch(onboardingWizardProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                FadeInDown(
-                  duration: const Duration(milliseconds: 400),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4F46E5)
-                                .withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/logo.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(
-                                    Icons.person_pin_rounded,
-                                    size: 36,
-                                    color: Color(0xFF4F46E5),
-                                  ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '¡Bienvenido a Horaly!',
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Configura tu perfil de prácticas para comenzar',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+
+            // Header con logo y marca
+            FadeInDown(
+              duration: const Duration(milliseconds: 350),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // 1. Datos Personales y Metas
-                FadeInUp(
-                  duration: const Duration(milliseconds: 400),
-                  delay: const Duration(milliseconds: 100),
-                  child: CustomCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Información del Practicante',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _nombreController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre Completo del Practicante',
-                            hintText: 'Ej. Juan Carlos Pérez Quispe',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) {
-                              return 'Ingresa tus nombres y apellidos';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _metaHorasController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Horas Totales',
-                                  hintText: '360',
-                                  prefixIcon: Icon(Icons.flag_outlined),
-                                  suffixText: 'hrs',
-                                ),
-                                validator: (val) {
-                                  final num = double.tryParse(val ?? '');
-                                  if (num == null || num <= 0) {
-                                    return 'Ingresa meta válida';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _horasMinimasController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Mínimo Semanal',
-                                  hintText: '30',
-                                  prefixIcon: Icon(Icons.timelapse_rounded),
-                                  suffixText: 'hrs',
-                                ),
-                                validator: (val) {
-                                  final num = double.tryParse(val ?? '');
-                                  if (num == null || num <= 0) {
-                                    return 'Ingresa horas';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _horasPreviasController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Horas Ya Cursadas (Opcional)',
-                            hintText: '0',
-                            prefixIcon: Icon(Icons.history_edu_rounded),
-                            suffixText: 'hrs',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 2. Periodo de Prácticas
-                FadeInUp(
-                  duration: const Duration(milliseconds: 400),
-                  delay: const Duration(milliseconds: 200),
-                  child: CustomCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Periodo de Prácticas (Opcional)',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Nos ayuda a calcular si vas adelantado, a tiempo o con atraso.',
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _seleccionarFechaInicio,
-                                child: Text(
-                                  _fechaInicio != null
-                                      ? 'Inicio: ${DateFormatters.fechaCorta(_fechaInicio!)}'
-                                      : 'Fecha Inicio',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _seleccionarFechaFin,
-                                child: Text(
-                                  _fechaFin != null
-                                      ? 'Fin: ${DateFormatters.fechaCorta(_fechaFin!)}'
-                                      : 'Fecha Fin',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 3. Horario Semanal Habitual
-                FadeInUp(
-                  duration: const Duration(milliseconds: 400),
-                  delay: const Duration(milliseconds: 300),
-                  child: CustomCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Horario Semanal Habitual',
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              'Toca para ajustar',
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
-                                color: const Color(0xFF4F46E5),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        ...AppConstants.diasSemanaKeys.map((diaKey) {
-                          final h =
-                              _horarioSemanal[diaKey] ??
-                              HorarioDia(
-                                diaSemana: diaKey,
-                                activo: false,
-                                horaInicio: '08:00',
-                                horaFin: '13:00',
-                                refrigerioMinutos: 0,
-                                modalidad: 'Presencial',
-                              );
-
-                          return InkWell(
-                            onTap: () => _editarHorarioDia(diaKey),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 6,
-                                horizontal: 4,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: h.activo
-                                          ? const Color(0xFF10B981)
-                                          : Colors.grey.shade400,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    DateFormatters.getDiaNombre(diaKey),
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    h.activo
-                                        ? '${h.horaInicio} - ${h.horaFin}${h.refrigerioMinutos > 0 ? ' (${h.refrigerioMinutos}m com)' : ''}'
-                                        : 'No laboral',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      color: h.activo
-                                          ? (isDark
-                                                ? const Color(0xFFE2E8F0)
-                                                : const Color(0xFF334155))
-                                          : (isDark
-                                                ? const Color(0xFF64748B)
-                                                : const Color(0xFF94A3B8)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(
-                                    Icons.edit_outlined,
-                                    size: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // 4. Botón de Iniciar
-                FadeInUp(
-                  duration: const Duration(milliseconds: 400),
-                  delay: const Duration(milliseconds: 400),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _guardarYContinuar,
-                      child: Text(
-                        'Comenzar a Registrar Horas',
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/logo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.schedule_rounded,
+                          size: 18,
+                          color: Color(0xFF4F46E5),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'PractiHoras',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+
+            // Header de Progreso y Pasos
+            WizardProgressHeader(
+              currentStep: wizardState.currentStep,
+              totalSteps: 3,
+              onBack: _onBack,
+            ),
+
+            // Contenido Dinámico de Pasos en PageView
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: const [
+                  StepConvenioWidget(),
+                  StepPeriodoWidget(),
+                  StepHorarioWidget(),
+                ],
+              ),
+            ),
+
+            // Barra Inferior de Acción
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    offset: const Offset(0, -4),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  if (wizardState.currentStep > 0) ...[
+                    CustomButton(
+                      text: 'Atrás',
+                      variant: ButtonVariant.outline,
+                      width: 100,
+                      onPressed: _isLoading ? null : _onBack,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: CustomButton(
+                      text: wizardState.currentStep == 2
+                          ? '¡Comenzar ahora! 🚀'
+                          : 'Continuar →',
+                      isLoading: _isLoading,
+                      onPressed: _isLoading
+                          ? null
+                          : (wizardState.currentStep == 2
+                              ? _finalizarOnboarding
+                              : _onNext),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

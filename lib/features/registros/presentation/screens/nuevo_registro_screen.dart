@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:practi_horas_app/core/constants/app_constants.dart';
 import 'package:practi_horas_app/core/di/dependency_injection.dart';
+import 'package:practi_horas_app/core/utils/app_time_picker.dart';
 import 'package:practi_horas_app/core/utils/date_formatters.dart';
 import 'package:practi_horas_app/core/utils/time_calculator.dart';
 import 'package:practi_horas_app/core/shared_atomic/atoms/custom_card.dart';
@@ -72,15 +73,10 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     final formState = ref.read(registroFormNotifierProvider);
     final initial = TimeCalculator.parseTimeOfDay(formState.horaInicio);
 
-    final picked = await showTimePicker(
+    final picked = await AppTimePicker.show(
       context: context,
       initialTime: initial,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
-        );
-      },
+      title: 'Hora de Entrada',
     );
 
     if (picked != null) {
@@ -93,15 +89,10 @@ class _NuevoRegistroScreenState extends ConsumerState<NuevoRegistroScreen> {
     final formState = ref.read(registroFormNotifierProvider);
     final initial = TimeCalculator.parseTimeOfDay(formState.horaFin);
 
-    final picked = await showTimePicker(
+    final picked = await AppTimePicker.show(
       context: context,
       initialTime: initial,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
-        );
-      },
+      title: 'Hora de Salida',
     );
 
     if (picked != null) {
