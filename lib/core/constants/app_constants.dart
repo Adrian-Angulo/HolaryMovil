@@ -1,8 +1,10 @@
+import '../config/environment_config.dart';
+
 class AppConstants {
   static const String appName = 'Horaly';
 
-  // API Base URL (Producción en Render)
-  static const String apiBaseUrl = 'https://practihoras-backend.onrender.com/api/v1';
+  /// URL base de la API resuelta a través de [EnvironmentConfig].
+  static String get apiBaseUrl => EnvironmentConfig.apiBaseUrl;
 
   // Endpoints
   static const String authRegisterEndpoint = '/auth/register';

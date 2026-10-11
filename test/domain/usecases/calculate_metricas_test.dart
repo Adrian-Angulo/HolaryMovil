@@ -82,5 +82,73 @@ void main() {
       expect(metricas.ritmoDiarioSugerido, 0.0);
       expect(metricas.mensajeRitmo.contains('finalizó'), true);
     });
+
+    test('Informa correctamente cuando el periodo no ha iniciado', () {
+      final fechaFutura = DateTime(2026, 8, 15); // Antes del 1 de septiembre
+
+      final metricas = useCase.execute(
+        registros: [],
+        perfil: perfil,
+        fechaReferencia: fechaFutura,
+      );
+
+      expect(metricas.estadoRitmo, EstadoRitmo.aTiempo);
+      expect(metricas.mensajeRitmo.contains('inicia el 2026-09-01'), true);
+      expect(metricas.diasHabilesRestantes > 0, true);
+    });
+
+    test('Mantiene estabilidad intra-día sin disparar falso adelantado tras registrar hoy', () {
+      final perfilUniforme = perfil.copyWith(
+        horasInicialesPrevias: 0.0,
+        metaHorasTotal: 100.0,
+        fechaInicio: DateTime(2026, 9, 1), // Martes
+        fechaFin: DateTime(2026, 9, 28),   // 20 días hábiles -> 5h/día
+      );
+
+      final registroHoy = [
+        RegistroHora(
+          id: 'reg-hoy',
+          fecha: DateTime(2026, 9, 1),
+          horaInicio: '08:00',
+          horaFin: '13:00',
+          descuentoAlmuerzoMinutos: 0,
+          horasComputables: 5.0,
+          modalidad: 'Presencial',
+          actividades: 'Desarrollo normal',
+          createdAt: DateTime(2026, 9, 1),
+        ),
+      ];
+
+      final metricas = useCase.execute(
+        registros: registroHoy,
+        perfil: perfilUniforme,
+        fechaReferencia: DateTime(2026, 9, 1), // Mismo día tras registrar
+      );
+
+      expect(metricas.estadoRitmo, EstadoRitmo.aTiempo);
+      expect(metricas.diferenciaHorasRitmo, 0.0);
+      expect(metricas.diasHabilesRestantes, 19);
+      expect(metricas.ritmoDiarioSugerido, 5.0);
+    });
+
+    test('Alerta sobrecarga de jornada permitida cuando el ritmo necesario supera 6h/día', () {
+      final perfilCorto = perfil.copyWith(
+        horasInicialesPrevias: 0.0,
+        metaHorasTotal: 100.0,
+        fechaInicio: DateTime(2026, 9, 1),
+        fechaFin: DateTime(2026, 9, 14), // 10 días hábiles
+      );
+
+      // Día 5 sin ningún registro
+      final metricas = useCase.execute(
+        registros: [],
+        perfil: perfilCorto,
+        fechaReferencia: DateTime(2026, 9, 7),
+      );
+
+      expect(metricas.estadoRitmo, EstadoRitmo.atrasado);
+      expect(metricas.ritmoDiarioSugerido > 6.0, true);
+      expect(metricas.mensajeRitmo.contains('excede la jornada habitual'), true);
+    });
   });
 }
